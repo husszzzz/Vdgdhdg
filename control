@@ -1,9 +1,9 @@
-Package: com.alhussaini.tweak
-Name: Alhussaini Tweak
+Package: com.huss.alhussaini
+Name: Alhussaini
 Depends: mobilesubstrate
 Version: 0.0.1
-Architecture: iphoneos-arm64
-Description: Alhussaini Store Tweak
-Maintainer: Alhussaini
-Author: Alhussaini
+Architecture: iphoneos-arm
+Description: My Awesome Dylib
+Maintainer: huss
+Author: huss
 Section: Tweaks
