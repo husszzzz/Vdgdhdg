@@ -1,4 +1,4 @@
-name: Build Alhussaini Dylib Fast
+name: Build Alhussaini Dylib Docker
 
 on:
   push:
@@ -7,26 +7,18 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: theos/theos:latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Build Tweak
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential clang devscripts checkinstall libssl-dev
-
-      - name: Manual Setup
-        run: |
-          git clone --recursive https://github.com/theos/theos.git ~/theos
-          curl -L "https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz" -o sdk.tar.xz
-          mkdir -p ~/theos/sdks
-          tar -xf sdk.tar.xz -C ~/theos/sdks/
-          echo "THEOS=~/theos" >> $GITHUB_ENV
-
-      - name: Build Dylib
-        run: |
-          export THEOS=~/theos
+          export THEOS=/theos
+          # تحميل الـ SDK داخل الحاوية بسرعة فائقة
+          mkdir -p $THEOS/sdks
+          curl -L "https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz" | tar -xJf - -C $THEOS/sdks/
           make package FINALPACKAGE=1
         
       - name: Upload Result
