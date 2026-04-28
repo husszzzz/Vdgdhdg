@@ -1,4 +1,4 @@
-name: Build Alhussaini Dylib FINAL
+name: Build Alhussaini Dylib UBUNTU
 
 on:
   push:
@@ -6,26 +6,27 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Manual Theos Setup
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential toolchain-prefix clang libicu-dev libcurl4-openssl-dev libssl-dev uuid-dev
+
+      - name: Setup Theos & SDK
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          # تحميل الـ SDK برابط مباشر ومختلف تماماً لتجنب الفشل
+          curl -L "https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz" -o sdk.tar.xz
           mkdir -p ~/theos/sdks
-          curl -L "https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz" -o ~/theos/sdks/sdk.tar.xz
-          tar -xf ~/theos/sdks/sdk.tar.xz -C ~/theos/sdks/
-          rm ~/theos/sdks/sdk.tar.xz
+          tar -xf sdk.tar.xz -C ~/theos/sdks/
           echo "THEOS=~/theos" >> $GITHUB_ENV
 
       - name: Build Dylib
         run: |
           export THEOS=~/theos
-          # تنظيف أي محاولات قديمة وبناء الملف من جديد
-          make clean
           make package FINALPACKAGE=1
         
       - name: Upload Result
