@@ -1,10 +1,12 @@
 TARGET := iphone:clang:latest:14.0
-INSTALL_TARGET_PROCESSES = SpringBoard
+ARCHS = arm64 arm64e
 
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = Alhussaini
+
 Alhussaini_FILES = Tweak.x
 Alhussaini_CFLAGS = -fobjc-arc
+Alhussaini_FRAMEWORKS = UIKit QuartzCore CoreGraphics
 
-include $(THEOS_MAKE_PATH)/tweak.mk
+include $(THEOS)/makefiles/tweak.mk
