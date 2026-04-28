@@ -9,6 +9,9 @@
             
         [alert addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleDefault handler:nil]];
         
-        [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
+        UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
+        if (rootViewController) {
+            [rootViewController presentViewController:alert animated:YES completion:nil];
+        }
     });
 }
