@@ -7,6 +7,6 @@ TWEAK_NAME = Alhussaini
 
 Alhussaini_FILES = Tweak.x
 Alhussaini_CFLAGS = -fobjc-arc
-Alhussaini_FRAMEWORKS = UIKit QuartzCore CoreGraphics AudioToolbox
+Alhussaini_FRAMEWORKS = UIKit QuartzCore CoreGraphics
 
 include $(THEOS)/makefiles/tweak.mk
