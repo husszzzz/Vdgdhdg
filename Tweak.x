@@ -1,161 +1,197 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 
-@interface AlhussainiPro : UIViewController
-@property (nonatomic, strong) UIView *introView;
-@property (nonatomic, strong) UIView *loginPanel;
+@interface AlhussainiElite : UIView <UITextFieldDelegate>
+@property (nonatomic, strong) UIView *mainBox;
+@property (nonatomic, strong) UIView *loginBox;
 @property (nonatomic, strong) UIButton *floatBtn;
-@property (nonatomic, strong) UIView *mainMenu;
-@property (nonatomic, strong) UITextField *passIn;
-@property (nonatomic, assign) BOOL expanded;
+@property (nonatomic, strong) UITextField *passField;
+@property (nonatomic, strong) CAShapeLayer *timerCircle;
+@property (nonatomic, assign) BOOL isWhite;
 @end
 
-@implementation AlhussainiPro
+@implementation AlhussainiElite
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    [self runIntro];
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.userInteractionEnabled = YES;
+        [self runNeonIntro];
+    }
+    return self;
 }
 
-// 1. الإنترو والأنميشن (Intro)
-- (void)runIntro {
-    self.introView = [[UIView alloc] initWithFrame:self.view.bounds];
-    self.introView.backgroundColor = [UIColor blackColor];
-    [self.view addSubview:self.introView];
+// --- [ 1. إنترو النيون السينمائي ] ---
+- (void)runNeonIntro {
+    UIView *bg = [[UIView alloc] initWithFrame:self.bounds];
+    bg.backgroundColor = [UIColor blackColor];
+    [self addSubview:bg];
 
-    UILabel *logo = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 300, 100)];
-    logo.center = self.introView.center;
-    logo.text = @"ALHUSSAINI";
-    logo.textColor = [UIColor yellowColor];
-    logo.font = [UIFont boldSystemFontOfSize:40];
-    logo.textAlignment = NSTextAlignmentCenter;
-    logo.alpha = 0;
-    [self.introView addSubview:logo];
+    UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 400, 100)];
+    lbl.center = bg.center;
+    lbl.text = @"ALHUSSAINI ELITE";
+    lbl.textColor = [UIColor yellowColor];
+    lbl.font = [UIFont fontWithName:@"AvenirNext-Heavy" size:40];
+    lbl.textAlignment = NSTextAlignmentCenter;
+    lbl.layer.shadowColor = [UIColor yellowColor].CGColor;
+    lbl.layer.shadowRadius = 20;
+    lbl.layer.shadowOpacity = 1;
+    lbl.alpha = 0;
+    [bg addSubview:lbl];
 
-    [UIView animateWithDuration:2.0 animations:^{ logo.alpha = 1; } completion:^(BOOL f) {
-        [UIView animateWithDuration:1.5 animations:^{ self.introView.alpha = 0; } completion:^(BOOL f2) {
-            [self.introView removeFromSuperview];
-            [self showLogin];
+    [UIView animateWithDuration:1.5 animations:^{
+        lbl.alpha = 1;
+        lbl.transform = CGAffineTransformMakeScale(1.3, 1.3);
+    } completion:^(BOOL f) {
+        [UIView animateWithDuration:1.0 delay:0.5 options:0 animations:^{ bg.alpha = 0; } completion:^(BOOL f2) {
+            [bg removeFromSuperview];
+            [self showProLogin];
         }];
     }];
 }
 
-// 2. واجهة الدخول مع العداد المطور
-- (void)showLogin {
-    self.loginPanel = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 320, 450)];
-    self.loginPanel.center = self.view.center;
-    self.loginPanel.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.95];
-    self.loginPanel.layer.cornerRadius = 40;
-    self.loginPanel.layer.borderWidth = 4;
-    self.loginPanel.layer.borderColor = [UIColor yellowColor].CGColor;
-    [self.view addSubview:self.loginPanel];
+// --- [ 2. واجهة الدخول المرتبة بقوة ] ---
+- (void)showProLogin {
+    self.loginBox = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 340, 500)];
+    self.loginBox.center = self.center;
+    self.loginBox.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.95];
+    self.loginBox.layer.cornerRadius = 50;
+    self.loginBox.layer.borderWidth = 4;
+    self.loginBox.layer.borderColor = [UIColor yellowColor].CGColor;
+    self.loginBox.layer.shadowColor = [UIColor yellowColor].CGColor;
+    self.loginBox.layer.shadowRadius = 30;
+    self.loginBox.layer.shadowOpacity = 0.8;
+    [self addSubview:self.loginBox];
 
-    self.passIn = [[UITextField alloc] initWithFrame:CGRectMake(40, 150, 240, 55)];
-    self.passIn.placeholder = @"كلمة السر (hassany)";
-    self.passIn.secureTextEntry = YES;
-    self.passIn.textAlignment = NSTextAlignmentCenter;
-    self.passIn.textColor = [UIColor whiteColor];
-    self.passIn.backgroundColor = [[UIColor whiteColor] colorWithAlphaComponent:0.1];
-    self.passIn.layer.cornerRadius = 20;
-    [self.loginPanel addSubview:self.passIn];
+    UILabel *topMsg = [[UILabel alloc] initWithFrame:CGRectMake(0, 40, 340, 40)];
+    topMsg.text = @"قم بإدخال الرمز الخاص بك";
+    topMsg.textColor = [UIColor yellowColor];
+    topMsg.textAlignment = NSTextAlignmentCenter;
+    topMsg.font = [UIFont boldSystemFontOfSize:22];
+    [self.loginBox addSubview:topMsg];
 
-    // العداد الذي يفتر (Animation)
-    UIBezierPath *cp = [UIBezierPath bezierPathWithArcCenter:CGPointMake(160, 320) radius:40 startAngle:-M_PI_2 endAngle:2*M_PI-M_PI_2 clockwise:YES];
-    CAShapeLayer *timer = [CAShapeLayer layer];
-    timer.path = cp.CGPath; timer.strokeColor = [UIColor yellowColor].CGColor;
-    timer.fillColor = [UIColor clearColor].CGColor; timer.lineWidth = 6;
-    [self.loginPanel.layer addSublayer:timer];
+    self.passField = [[UITextField alloc] initWithFrame:CGRectMake(40, 150, 260, 65)];
+    self.passField.placeholder = @"الرمز السري...";
+    self.passField.secureTextEntry = YES;
+    self.passField.textAlignment = NSTextAlignmentCenter;
+    self.passField.textColor = [UIColor whiteColor];
+    self.passField.font = [UIFont boldSystemFontOfSize:20];
+    self.passField.backgroundColor = [[UIColor whiteColor] colorWithAlphaComponent:0.1];
+    self.passField.layer.cornerRadius = 25;
+    [self.loginBox addSubview:self.passField];
 
-    CABasicAnimation *ba = [CABasicAnimation animationWithKeyPath:@"strokeEnd"];
-    ba.duration = 6.0; ba.fromValue = @0; ba.toValue = @1;
-    [timer addAnimation:ba forKey:@"t"];
+    // العداد الذي يفتر (احترافي جداً)
+    UIBezierPath *path = [UIBezierPath bezierPathWithArcCenter:CGPointMake(170, 350) radius:50 startAngle:-M_PI_2 endAngle:2*M_PI-M_PI_2 clockwise:YES];
+    self.timerCircle = [CAShapeLayer layer];
+    self.timerCircle.path = path.CGPath;
+    self.timerCircle.strokeColor = [UIColor yellowColor].CGColor;
+    self.timerCircle.fillColor = [UIColor clearColor].CGColor;
+    self.timerCircle.lineWidth = 7;
+    self.timerCircle.lineCap = kCALineCapRound;
+    [self.loginBox.layer addSublayer:self.timerCircle];
 
-    UIButton *log = [[UIButton alloc] initWithFrame:CGRectMake(120, 290, 80, 60)];
-    [log setTitle:@"دخول" forState:UIControlStateNormal];
-    [log setTitleColor:[UIColor yellowColor] forState:UIControlStateNormal];
-    [log addTarget:self action:@selector(auth) forControlEvents:UIControlEventTouchUpInside];
-    [self.loginPanel addSubview:log];
+    CABasicAnimation *anim = [CABasicAnimation animationWithKeyPath:@"strokeEnd"];
+    anim.duration = 6.0; anim.fromValue = @0; anim.toValue = @1;
+    [self.timerCircle addAnimation:anim forKey:@"loading"];
+
+    UIButton *logBtn = [[UIButton alloc] initWithFrame:CGRectMake(120, 315, 100, 70)];
+    [logBtn setTitle:@"دخول" forState:UIControlStateNormal];
+    [logBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    logBtn.titleLabel.font = [UIFont boldSystemFontOfSize:25];
+    [logBtn addTarget:self action:@selector(checkAuth) forControlEvents:UIControlEventTouchUpInside];
+    [self.loginBox addSubview:logBtn];
 }
 
-- (void)auth {
-    if ([self.passIn.text isEqualToString:@"hassany"]) {
-        [UIView animateWithDuration:0.5 animations:^{ self.loginPanel.alpha = 0; } completion:^(BOOL f) {
-            [self.loginPanel removeFromSuperview];
-            [self createFloat];
+- (void)checkAuth {
+    if ([self.passField.text isEqualToString:@"hassany"]) {
+        [UIView animateWithDuration:0.5 animations:^{ self.loginBox.alpha = 0; } completion:^(BOOL f){
+            [self.loginBox removeFromSuperview];
+            [self createFloatingSystem];
         }];
     }
 }
 
-// 3. اللوغو العائم مع ميزة التوسيع
-- (void)createFloat {
-    self.floatBtn = [[UIButton alloc] initWithFrame:CGRectMake(20, 100, 75, 75)];
-    self.floatBtn.layer.cornerRadius = 37.5;
+// --- [ 3. اللوغو العائم والتزييت ] ---
+- (void)createFloatingSystem {
+    self.floatBtn = [[UIButton alloc] initWithFrame:CGRectMake(20, 200, 85, 85)];
+    self.floatBtn.layer.cornerRadius = 42.5;
     self.floatBtn.layer.borderWidth = 3;
     self.floatBtn.layer.borderColor = [UIColor yellowColor].CGColor;
     self.floatBtn.clipsToBounds = YES;
     
-    // سحب الصورة
     dispatch_async(dispatch_get_global_queue(0,0), ^{
         NSData *d = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"https://e.top4top.io/p_37700ug540.jpeg"]];
         if(d) dispatch_async(dispatch_get_main_queue(), ^{ [self.floatBtn setImage:[UIImage imageWithData:d] forState:UIControlStateNormal]; });
     });
 
-    [self.floatBtn addTarget:self action:@selector(openMenu) forControlEvents:UIControlEventTouchUpInside];
-    [self.floatBtn addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(drag:)]];
-    [[UIApplication sharedApplication].windows.firstObject addSubview:self.floatBtn];
+    [self.floatBtn addTarget:self action:@selector(toggleUltimateMenu) forControlEvents:UIControlEventTouchUpInside];
+    [self.floatBtn addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(pan:)]];
+    [self addSubview:self.floatBtn];
 }
 
-- (void)drag:(UIPanGestureRecognizer *)g {
-    CGPoint p = [g translationInView:self.view];
+- (void)pan:(UIPanGestureRecognizer *)g {
+    CGPoint p = [g translationInView:self];
     self.floatBtn.center = CGPointMake(self.floatBtn.center.x + p.x, self.floatBtn.center.y + p.y);
-    [g setTranslation:CGPointZero inView:self.view];
+    [g setTranslation:CGPointZero inView:self];
 }
 
-// 4. القائمة الاحترافية كاملة المميزات
-- (void)openMenu {
-    if (self.mainMenu) { [self.mainMenu removeFromSuperview]; self.mainMenu = nil; return; }
-    
-    self.mainMenu = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 300, 450)];
-    self.mainMenu.center = self.view.center;
-    self.mainMenu.backgroundColor = [UIColor blackColor];
-    self.mainMenu.layer.cornerRadius = 30;
-    self.mainMenu.layer.borderColor = [UIColor yellowColor].CGColor;
-    self.mainMenu.layer.borderWidth = 2;
-    [self.view addSubview:self.mainMenu];
+// --- [ 4. المنيو العملاق بكل الأزرار ] ---
+- (void)toggleUltimateMenu {
+    if (self.mainBox) {
+        [UIView animateWithDuration:0.3 animations:^{ self.mainBox.transform = CGAffineTransformMakeScale(0.1, 0.1); self.mainBox.alpha = 0; } completion:^(BOOL f){ [self.mainBox removeFromSuperview]; self.mainBox = nil; }];
+        return;
+    }
 
-    // ميزة التوسيع (Expand Animation)
-    self.mainMenu.transform = CGAffineTransformMakeScale(0.1, 0.1);
-    [UIView animateWithDuration:0.3 animations:^{ self.mainMenu.transform = CGAffineTransformIdentity; }];
+    self.mainBox = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 320, 550)];
+    self.mainBox.center = self.center;
+    self.mainBox.backgroundColor = self.isWhite ? [UIColor whiteColor] : [UIColor blackColor];
+    self.mainBox.layer.cornerRadius = 40;
+    self.mainBox.layer.borderColor = [UIColor yellowColor].CGColor;
+    self.mainBox.layer.borderWidth = 3;
+    [self addSubview:self.mainBox];
 
-    UILabel *t = [[UILabel alloc] initWithFrame:CGRectMake(0, 20, 300, 40)];
-    t.text = @"ALHUSSAINI ELITE";
-    t.textColor = [UIColor yellowColor];
-    t.textAlignment = NSTextAlignmentCenter;
-    t.font = [UIFont boldSystemFontOfSize:22];
-    [self.mainMenu addSubview:t];
+    // أنميشن التوسيع
+    self.mainBox.transform = CGAffineTransformMakeScale(0.1, 0.1);
+    [UIView animateWithDuration:0.5 delay:0 usingSpringWithDamping:0.7 initialSpringVelocity:0.5 options:0 animations:^{ self.mainBox.transform = CGAffineTransformIdentity; } completion:nil];
 
-    // ميزة القناة (تليجرام)
-    UIButton *c = [[UIButton alloc] initWithFrame:CGRectMake(50, 120, 200, 50)];
-    c.backgroundColor = [UIColor yellowColor];
-    [c setTitle:@"القناة الرسمية" forState:UIControlStateNormal];
-    [c setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
-    c.layer.cornerRadius = 15;
-    [c addTarget:self action:@selector(tele) forControlEvents:UIControlEventTouchUpInside];
-    [self.mainMenu addSubview:c];
+    UILabel *h = [[UILabel alloc] initWithFrame:CGRectMake(0, 20, 320, 40)];
+    h.text = @"ALHUSSAINI SYSTEM";
+    h.textColor = [UIColor yellowColor];
+    h.textAlignment = NSTextAlignmentCenter;
+    h.font = [UIFont fontWithName:@"AvenirNext-Heavy" size:22];
+    [self.mainBox addSubview:h];
+
+    // الأزرار المطلوبة
+    [self addBtn:@"القناة الرسمية 🚀" y:100 action:@selector(openT)];
+    [self addBtn:@"المطور @OM_G9 👨‍💻" y:170 action:@selector(openT)];
+    [self addBtn:@"تغيير النمط (Theme)" y:240 action:@selector(changeT)];
+    [self addBtn:@"تزييت القائمة (Smooth)" y:310 action:@selector(smooth)];
 }
 
-- (void)tele {
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/hasanyiq"] options:@{} completionHandler:nil];
+- (void)addBtn:(NSString *)t y:(int)y action:(SEL)a {
+    UIButton *b = [[UIButton alloc] initWithFrame:CGRectMake(40, y, 240, 55)];
+    b.backgroundColor = [UIColor yellowColor];
+    [b setTitle:t forState:UIControlStateNormal];
+    [b setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+    b.layer.cornerRadius = 18;
+    b.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+    [b addTarget:self action:a forControlEvents:UIControlEventTouchUpInside];
+    [self.mainBox addSubview:b];
 }
+
+- (void)openT { [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/hasanyiq"] options:@{} completionHandler:nil]; }
+- (void)changeT { self.isWhite = !self.isWhite; [self.mainBox removeFromSuperview]; self.mainBox = nil; [self toggleUltimateMenu]; }
+- (void)smooth { /* ميزة وهمية لإعطاء شعور بالتزييت */ CABasicAnimation *s = [CABasicAnimation animationWithKeyPath:@"opacity"]; s.duration = 0.5; s.fromValue = @0.5; s.toValue = @1; [self.mainBox.layer addAnimation:s forKey:nil]; }
+
 @end
 
+// --- [ نظام حقن الواجهة بدون كراش ] ---
 %ctor {
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 4 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        UIWindow *w = [UIApplication sharedApplication].windows.firstObject;
-        if (w.rootViewController) {
-            AlhussainiPro *p = [[AlhussainiPro alloc] init];
-            p.modalPresentationStyle = UIModalPresentationOverFullScreen;
-            [w.rootViewController presentViewController:p animated:YES completion:nil];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        UIWindow *win = [UIApplication sharedApplication].windows.firstObject;
+        if (win) {
+            AlhussainiElite *eliteView = [[AlhussainiElite alloc] initWithFrame:win.bounds];
+            [win addSubview:eliteView];
         }
     });
 }
