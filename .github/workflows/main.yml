@@ -2,22 +2,32 @@ name: Build Alhussaini Dylib Final Path
 
 on:
   push:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Fast Setup Theos
+      - name: Install Dependencies
+        run: |
+          brew install ldid
+          echo "Dependencies installed."
+
+      - name: Setup Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
           echo "THEOS=~/theos" >> $GITHUB_ENV
+          
+      - name: Setup SDK
+        run: |
           mkdir -p ~/theos/sdks
           curl -L "https://github.com/theos/sdks/archive/master.tar.gz" -o sdk.tar.gz
-          tar -xf sdk.tar.gz -C ~/theos/sdks --strip-components=1
+          tar -xf sdk.tar.gz --strip-components=1 -C ~/theos/sdks
           rm sdk.tar.gz
 
       - name: Compile Dylib
