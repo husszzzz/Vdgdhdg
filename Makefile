@@ -8,7 +8,7 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = Alhussaini
 
 Alhussaini_FILES = Tweak.x
-Alhussaini_CFLAGS = -fobjc-arc
-Alhussaini_FRAMEWORKS = UIKit QuartzCore CoreGraphics AudioToolbox Accelerate
+Alhussaini_CFLAGS = -fobjc-arc -Wno-deprecated-declarations
+Alhussaini_FRAMEWORKS = UIKit QuartzCore CoreGraphics AudioToolbox Accelerate CoreImage
 
 include $(THEOS)/makefiles/tweak.mk
