@@ -1,4 +1,4 @@
-name: Build Alhussaini Dylib Docker
+name: Build Alhussaini Dylib
 
 on:
   push:
@@ -6,19 +6,18 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: theos/theos:latest
+    runs-on: macos-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Setup Theos
+        uses: theos/setup-theos@v1
+        with:
+          theos-src: https://github.com/theos/theos.git
+
       - name: Build Tweak
         run: |
-          export THEOS=/theos
-          # تحميل الـ SDK داخل الحاوية بسرعة فائقة
-          mkdir -p $THEOS/sdks
-          curl -L "https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz" | tar -xJf - -C $THEOS/sdks/
           make package FINALPACKAGE=1
         
       - name: Upload Result
