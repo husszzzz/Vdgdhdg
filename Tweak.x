@@ -1,211 +1,155 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
+#import <objc/runtime.h>
 
-// واجهة التحكم الرئيسية
-@interface AlhussainiController : UIViewController <UITextFieldDelegate>
-@property (nonatomic, strong) UIView *loginPanel;
-@property (nonatomic, strong) UIView *menuPanel;
-@property (nonatomic, strong) UIButton *floatBtn;
-@property (nonatomic, strong) CAShapeLayer *circleProgress;
-@property (nonatomic, strong) UITextField *passInput;
-@property (nonatomic, strong) UIButton *enterBtn;
-@property (nonatomic, assign) BOOL isDark;
+@interface AlhussainiFinal : UIViewController
+@property (nonatomic, strong) UIView *loginP;
+@property (nonatomic, strong) UIView *menuP;
+@property (nonatomic, strong) UIButton *floatB;
+@property (nonatomic, strong) UITextField *passF;
+@property (nonatomic, assign) BOOL isWhite;
 @end
 
-@implementation AlhussainiController
+@implementation AlhussainiFinal
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor clearColor];
-    self.isDark = YES;
-    [self showLoginScreen];
+    [self setupLogin];
 }
 
-// --- شاشة تسجيل الدخول ---
-- (void)showLoginScreen {
-    self.loginPanel = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 300, 480)];
-    self.loginPanel.center = self.view.center;
-    self.loginPanel.backgroundColor = [UIColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:0.9];
-    self.loginPanel.layer.cornerRadius = 30;
-    self.loginPanel.layer.borderWidth = 2;
-    self.loginPanel.layer.borderColor = [UIColor yellowColor].CGColor;
-    [self.view addSubview:self.loginPanel];
+- (void)setupLogin {
+    // واجهة الدخول
+    self.loginP = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 300, 450)];
+    self.loginP.center = self.view.center;
+    self.loginP.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.95];
+    self.loginP.layer.cornerRadius = 25;
+    self.loginP.layer.borderColor = [UIColor yellowColor].CGColor;
+    self.loginP.layer.borderWidth = 2;
+    [self.view addSubview:self.loginP];
 
-    // صورة القناة
-    UIImageView *logo = [[UIImageView alloc] initWithFrame:CGRectMake(110, 30, 80, 80)];
-    logo.layer.cornerRadius = 40;
-    logo.clipsToBounds = YES;
-    logo.layer.borderColor = [UIColor whiteColor].CGColor;
-    logo.layer.borderWidth = 2;
-    [self.loginPanel addSubview:logo];
-    dispatch_async(dispatch_get_global_queue(0,0), ^{
-        NSData *d = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"https://e.top4top.io/p_37700ug540.jpeg"]];
-        if(d) dispatch_async(dispatch_get_main_queue(), ^{ logo.image = [UIImage imageWithData:d]; });
-    });
+    // حقل كلمة السر (الكلمة هي hassany)
+    self.passF = [[UITextField alloc] initWithFrame:CGRectMake(40, 150, 220, 45)];
+    self.passF.placeholder = @"كلمة السر...";
+    self.passF.secureTextEntry = YES;
+    self.passF.textAlignment = NSTextAlignmentCenter;
+    self.passF.textColor = [UIColor whiteColor];
+    self.passF.backgroundColor = [[UIColor whiteColor] colorWithAlphaComponent:0.1];
+    self.passF.layer.cornerRadius = 10;
+    [self.loginP addSubview:self.passF];
 
-    // حقل السر
-    self.passInput = [[UITextField alloc] initWithFrame:CGRectMake(40, 150, 220, 45)];
-    self.passInput.placeholder = @"أدخل السر...";
-    self.passInput.secureTextEntry = YES;
-    self.passInput.textAlignment = NSTextAlignmentCenter;
-    self.passInput.textColor = [UIColor whiteColor];
-    self.passInput.backgroundColor = [[UIColor grayColor] colorWithAlphaComponent:0.2];
-    self.passInput.layer.cornerRadius = 10;
-    self.passInput.delegate = self;
-    [self.loginPanel addSubview:self.passInput];
-
-    // العداد الدائري الاحترافي
-    UIBezierPath *path = [UIBezierPath bezierPathWithArcCenter:CGPointMake(150, 320) radius:40 startAngle:-M_PI_2 endAngle:2*M_PI-M_PI_2 clockwise:YES];
-    self.circleProgress = [CAShapeLayer layer];
-    self.circleProgress.path = path.CGPath;
-    self.circleProgress.strokeColor = [UIColor yellowColor].CGColor;
-    self.circleProgress.fillColor = [UIColor clearColor].CGColor;
-    self.circleProgress.lineWidth = 6;
-    self.circleProgress.strokeEnd = 0;
-    [self.loginPanel.layer addSublayer:self.circleProgress];
+    // العداد الدائري
+    UIBezierPath *path = [UIBezierPath bezierPathWithArcCenter:CGPointMake(150, 320) radius:35 startAngle:-M_PI_2 endAngle:2*M_PI-M_PI_2 clockwise:YES];
+    CAShapeLayer *timerLayer = [CAShapeLayer layer];
+    timerLayer.path = path.CGPath;
+    timerLayer.strokeColor = [UIColor yellowColor].CGColor;
+    timerLayer.fillColor = [UIColor clearColor].CGColor;
+    timerLayer.lineWidth = 4;
+    [self.loginP.layer addSublayer:timerLayer];
 
     CABasicAnimation *draw = [CABasicAnimation animationWithKeyPath:@"strokeEnd"];
     draw.duration = 6.0;
+    draw.fromValue = @0;
     draw.toValue = @1;
-    draw.removedOnCompletion = NO;
-    draw.fillMode = kCAFillModeForwards;
-    [self.circleProgress addAnimation:draw forKey:@"timer"];
+    [timerLayer addAnimation:draw forKey:@"t"];
 
-    // زر الدخول
-    self.enterBtn = [[UIButton alloc] initWithFrame:CGRectMake(110, 280, 80, 80)];
-    [self.enterBtn setTitle:@"دخول" forState:UIControlStateNormal];
-    [self.enterBtn setTitleColor:[UIColor grayColor] forState:UIControlStateNormal];
-    self.enterBtn.enabled = NO;
-    [self.enterBtn addTarget:self action:@selector(doLogin) forControlEvents:UIControlEventTouchUpInside];
-    [self.loginPanel addSubview:self.enterBtn];
-
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 6 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        self.enterBtn.enabled = YES;
-        [self.enterBtn setTitleColor:[UIColor yellowColor] forState:UIControlStateNormal];
-    });
+    // زر الدخول (يتفعل بعد 6 ثواني)
+    UIButton *btn = [[UIButton alloc] initWithFrame:CGRectMake(110, 285, 80, 70)];
+    [btn setTitle:@"دخول" forState:UIControlStateNormal];
+    [btn setTitleColor:[UIColor yellowColor] forState:UIControlStateNormal];
+    [btn addTarget:self action:@selector(loginAction) forControlEvents:UIControlEventTouchUpInside];
+    [self.loginP addSubview:btn];
 }
 
-- (void)doLogin {
-    if ([self.passInput.text isEqualToString:@"hassany"]) {
-        [UIView animateWithDuration:0.5 animations:^{ self.loginPanel.alpha = 0; } completion:^(BOOL f){
-            [self.loginPanel removeFromSuperview];
-            [self startFloatingMode];
-        }];
+- (void)loginAction {
+    if ([self.passF.text isEqualToString:@"hassany"]) {
+        [self.loginP removeFromSuperview];
+        [self showFloating];
     }
 }
 
-// --- اللوغو العائم القابل للسحب ---
-- (void)startFloatingMode {
-    self.floatBtn = [[UIButton alloc] initWithFrame:CGRectMake(20, 100, 60, 60)];
-    self.floatBtn.layer.cornerRadius = 30;
-    self.floatBtn.clipsToBounds = YES;
-    self.floatBtn.layer.borderWidth = 2;
-    self.floatBtn.layer.borderColor = [UIColor yellowColor].CGColor;
+- (void)showFloating {
+    self.floatB = [[UIButton alloc] initWithFrame:CGRectMake(50, 100, 60, 60)];
+    self.floatB.layer.cornerRadius = 30;
+    self.floatB.clipsToBounds = YES;
     
+    // تحميل الصورة
     dispatch_async(dispatch_get_global_queue(0,0), ^{
-        NSData *d = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"https://e.top4top.io/p_37700ug540.jpeg"]];
-        if(d) dispatch_async(dispatch_get_main_queue(), ^{ [self.floatBtn setImage:[UIImage imageWithData:d] forState:UIControlStateNormal]; });
+        NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"https://e.top4top.io/p_37700ug540.jpeg"]];
+        if(data) dispatch_async(dispatch_get_main_queue(), ^{ 
+            [self.floatB setImage:[UIImage imageWithData:data] forState:UIControlStateNormal]; 
+        });
     });
 
-    [self.floatBtn addTarget:self action:@selector(openMenu) forControlEvents:UIControlEventTouchUpInside];
-    
-    UIPanGestureRecognizer *p = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(dragged:)];
-    [self.floatBtn addGestureRecognizer:p];
-    
-    [[UIApplication sharedApplication].keyWindow addSubview:self.floatBtn];
+    [self.floatB addTarget:self action:@selector(openMenu) forControlEvents:UIControlEventTouchUpInside];
+    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    [self.floatB addGestureRecognizer:pan];
+    [[UIApplication sharedApplication].keyWindow addSubview:self.floatB];
 }
 
-- (void)dragged:(UIPanGestureRecognizer *)g {
-    CGPoint t = [g translationInView:self.view];
-    self.floatBtn.center = CGPointMake(self.floatBtn.center.x + t.x, self.floatBtn.center.y + t.y);
-    [g setTranslation:CGPointZero inView:self.view];
+- (void)handlePan:(UIPanGestureRecognizer *)p {
+    CGPoint t = [p translationInView:self.view];
+    self.floatB.center = CGPointMake(self.floatB.center.x + t.x, self.floatB.center.y + t.y);
+    [p setTranslation:CGPointZero inView:self.view];
 }
 
-// --- القائمة الرئيسية ---
 - (void)openMenu {
-    if (self.menuPanel) return;
+    if (self.menuP) { [self.menuP removeFromSuperview]; self.menuP = nil; return; }
+    self.menuP = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 260, 380)];
+    self.menuP.center = self.view.center;
+    self.menuP.backgroundColor = self.isWhite ? [UIColor whiteColor] : [UIColor blackColor];
+    self.menuP.layer.cornerRadius = 20;
+    self.menuP.layer.borderColor = [UIColor yellowColor].CGColor;
+    self.menuP.layer.borderWidth = 1;
+    [self.view addSubview:self.menuP];
 
-    self.menuPanel = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 280, 420)];
-    self.menuPanel.center = self.view.center;
-    self.menuPanel.backgroundColor = self.isDark ? [UIColor blackColor] : [UIColor whiteColor];
-    self.menuPanel.layer.cornerRadius = 20;
-    self.menuPanel.layer.shadowOpacity = 0.5;
-    [self.view addSubview:self.menuPanel];
-
-    UILabel *t = [[UILabel alloc] initWithFrame:CGRectMake(0, 10, 280, 40)];
-    t.text = @"ALHUSSAINI MENU";
-    t.textAlignment = NSTextAlignmentCenter;
-    t.textColor = [UIColor yellowColor];
-    t.font = [UIFont boldSystemFontOfSize:22];
-    [self.menuPanel addSubview:t];
-
-    // سويتش الثيم
-    UISwitch *s = [[UISwitch alloc] initWithFrame:CGRectMake(200, 70, 50, 30)];
-    [s addTarget:self action:@selector(toggleTheme:) forControlEvents:UIControlEventValueChanged];
-    [self.menuPanel addSubview:s];
+    // زر التبديل (Switch)
+    UISwitch *sw = [[UISwitch alloc] initWithFrame:CGRectMake(180, 60, 50, 30)];
+    [sw setOn:self.isWhite];
+    [sw addTarget:self action:@selector(toggleT:) forControlEvents:UIControlEventValueChanged];
+    [self.menuP addSubview:sw];
     
-    UILabel *sl = [[UILabel alloc] initWithFrame:CGRectMake(20, 70, 150, 30)];
-    sl.text = @"الوضع الفاتح";
-    sl.textColor = self.isDark ? [UIColor whiteColor] : [UIColor blackColor];
-    [self.menuPanel addSubview:sl];
+    UILabel *l = [[UILabel alloc] initWithFrame:CGRectMake(20, 60, 150, 30)];
+    l.text = @"الوضع الفاتح";
+    l.textColor = self.isWhite ? [UIColor blackColor] : [UIColor whiteColor];
+    [self.menuP addSubview:l];
 
-    // أزرار
-    [self btn:@"المطور @OM_G9" y:150 link:@"tg://resolve?domain=OM_G9"];
-    [self btn:@"القناة الرسمية" y:210 link:@"https://t.me/hasanyiq"];
-    
-    UIButton *res = [[UIButton alloc] initWithFrame:CGRectMake(40, 350, 200, 40)];
-    res.backgroundColor = [UIColor redColor];
-    [res setTitle:@"إعادة تعيين" forState:UIControlStateNormal];
-    res.layer.cornerRadius = 10;
-    [res addTarget:self action:@selector(reset) forControlEvents:UIControlEventTouchUpInside];
-    [self.menuPanel addSubview:res];
-
-    UIButton *close = [[UIButton alloc] initWithFrame:CGRectMake(240, 10, 30, 30)];
-    [close setTitle:@"X" forState:UIControlStateNormal];
-    [close setTitleColor:[UIColor redColor] forState:UIControlStateNormal];
-    [close addTarget:self action:@selector(closeM) forControlEvents:UIControlEventTouchUpInside];
-    [self.menuPanel addSubview:close];
+    // أزرار المطور والقناة
+    [self addB:@"المطور @OM_G9" y:130 link:@"tg://resolve?domain=OM_G9"];
+    [self addB:@"القناة الرسمية" y:190 link:@"https://t.me/hasanyiq"];
 }
 
-- (void)btn:(NSString *)txt y:(CGFloat)y link:(NSString *)l {
-    UIButton *b = [[UIButton alloc] initWithFrame:CGRectMake(20, y, 240, 40)];
+- (void)addB:(NSString *)t y:(CGFloat)y link:(NSString *)l {
+    UIButton *b = [[UIButton alloc] initWithFrame:CGRectMake(20, y, 220, 40)];
     b.backgroundColor = [UIColor yellowColor];
-    [b setTitle:txt forState:UIControlStateNormal];
+    [b setTitle:t forState:UIControlStateNormal];
     [b setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
     b.layer.cornerRadius = 10;
     [b addTarget:self action:@selector(go:) forControlEvents:UIControlEventTouchUpInside];
     objc_setAssociatedObject(b, "l", l, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    [self.menuPanel addSubview:b];
+    [self.menuP addSubview:b];
 }
 
 - (void)go:(UIButton *)s {
-    NSString *l = objc_getAssociatedObject(s, "l");
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:l] options:@{} completionHandler:nil];
+    NSString *url = objc_getAssociatedObject(s, "l");
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:url] options:@{} completionHandler:nil];
 }
 
-- (void)toggleTheme:(UISwitch *)s {
-    self.isDark = !s.isOn;
-    self.menuPanel.backgroundColor = self.isDark ? [UIColor blackColor] : [UIColor whiteColor];
-    [self closeM]; [self openMenu];
-}
-
-- (void)closeM { [self.menuPanel removeFromSuperview]; self.menuPanel = nil; }
-
-- (void)reset {
-    [self closeM];
-    [self.floatBtn removeFromSuperview];
-    self.floatBtn = nil;
-    [self showLoginScreen];
+- (void)toggleT:(UISwitch *)s {
+    self.isWhite = s.isOn;
+    [self.menuP removeFromSuperview];
+    self.menuP = nil;
+    [self openMenu];
 }
 @end
 
 %ctor {
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        UIWindow *w = [UIApplication sharedApplication].keyWindow ?: [UIApplication sharedApplication].windows.firstObject;
-        if (w.rootViewController) {
-            AlhussainiController *vc = [[AlhussainiController alloc] init];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 6 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        UIWindow *win = [UIApplication sharedApplication].keyWindow ?: [UIApplication sharedApplication].windows.firstObject;
+        if (win.rootViewController) {
+            AlhussainiFinal *vc = [[AlhussainiFinal alloc] init];
             vc.modalPresentationStyle = UIModalPresentationOverFullScreen;
-            [w.rootViewController presentViewController:vc animated:YES completion:nil];
+            [win.rootViewController presentViewController:vc animated:YES completion:nil];
         }
     });
 }
