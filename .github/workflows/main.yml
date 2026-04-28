@@ -16,12 +16,13 @@ jobs:
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
           echo "THEOS=/Users/runner/theos" >> $GITHUB_ENV
           
-      - name: Force Install SDK
+      - name: Force Install SDK Manual
         run: |
-          mkdir -p /Users/runner/theos/sdks
-          curl -L "https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz" -o /Users/runner/theos/sdks/iPhoneOS14.5.sdk.tar.xz
-          tar -xf /Users/runner/theos/sdks/iPhoneOS14.5.sdk.tar.xz -C /Users/runner/theos/sdks/
-          rm /Users/runner/theos/sdks/iPhoneOS14.5.sdk.tar.xz
+          export THEOS=/Users/runner/theos
+          mkdir -p $THEOS/sdks
+          curl -L "https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz" -o $THEOS/sdks/iPhoneOS14.5.sdk.tar.xz
+          tar -xf $THEOS/sdks/iPhoneOS14.5.sdk.tar.xz -C $THEOS/sdks/
+          rm $THEOS/sdks/iPhoneOS14.5.sdk.tar.xz
 
       - name: Build Tweak
         run: |
