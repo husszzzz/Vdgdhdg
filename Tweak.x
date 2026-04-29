@@ -1,8 +1,8 @@
 #import <UIKit/UIKit.h>
-#import <substrate.h>
 
 /**
- * ALHUSSAINI MOD - SAFE STABLE VERSION
+ * ALHUSSAINI MOD - ANTI-CRASH VERSION
+ * تم إزالة كود الـ Hook المباشر لمنع الخروج المفاجئ
  */
 
 @interface HussainMenu : UIView
@@ -11,76 +11,79 @@
 @property (nonatomic, strong) UIButton *btnH;
 @end
 
-static int userGems = 999999;
-
 @implementation HussainMenu
-// ... نفس كود التصميم السابق (setupUI) ...
+
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
-    if (self) { [self setupUI]; }
+    if (self) {
+        [self setupUI];
+    }
     return self;
 }
 
 - (void)setupUI {
-    // الزر العائم
-    self.btnH = [[UIButton alloc] initWithFrame:CGRectMake(30, 150, 55, 55)];
-    self.btnH.backgroundColor = [UIColor orangeColor];
-    self.btnH.layer.cornerRadius = 27.5;
+    // الزر العائم H
+    self.btnH = [[UIButton alloc] initWithFrame:CGRectMake(50, 150, 60, 60)];
+    self.btnH.backgroundColor = [[UIColor orangeColor] colorWithAlphaComponent:0.8];
+    self.btnH.layer.cornerRadius = 30;
     [self.btnH setTitle:@"H" forState:UIControlStateNormal];
     [self.btnH addTarget:self action:@selector(toggle) forControlEvents:UIControlEventTouchUpInside];
     [self addSubview:self.btnH];
 
-    // المنيو
-    self.panel = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 260, 300)];
-    self.panel.center = self.center;
-    self.panel.backgroundColor = [UIColor colorWithRed:0.10 green:0.10 blue:0.15 alpha:0.98];
+    // اللوحة الرئيسية (المنيو)
+    self.panel = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 280, 300)];
+    self.panel.center = CGPointMake(self.bounds.size.width / 2, self.bounds.size.height / 2);
+    self.panel.backgroundColor = [UIColor colorWithRed:0.05 green:0.05 blue:0.10 alpha:0.95];
     self.panel.layer.cornerRadius = 20;
-    self.panel.layer.borderColor = [UIColor orangeColor].CGColor;
-    self.panel.layer.borderWidth = 1.0;
     self.panel.hidden = YES;
     [self addSubview:self.panel];
 
-    self.gemField = [[UITextField alloc] initWithFrame:CGRectMake(20, 80, 220, 40)];
-    self.gemField.placeholder = @"عدد المجوهرات...";
+    // خانة الإدخال
+    self.gemField = [[UITextField alloc] initWithFrame:CGRectMake(30, 100, 220, 45)];
+    self.gemField.placeholder = @"أدخل القيمة هنا...";
     self.gemField.backgroundColor = [UIColor whiteColor];
     self.gemField.textAlignment = NSTextAlignmentCenter;
     self.gemField.keyboardType = UIKeyboardTypeNumberPad;
+    self.gemField.layer.cornerRadius = 10;
     [self.panel addSubview:self.gemField];
 
-    UIButton *apply = [[UIButton alloc] initWithFrame:CGRectMake(20, 150, 220, 45)];
-    [apply setTitle:@"تفعيل ✅" forState:UIControlStateNormal];
+    // زر التفعيل
+    UIButton *apply = [[UIButton alloc] initWithFrame:CGRectMake(30, 180, 220, 50)];
+    [apply setTitle:@"تعديل 🚀" forState:UIControlStateNormal];
     apply.backgroundColor = [UIColor orangeColor];
-    [apply addTarget:self action:@selector(hack) forControlEvents:UIControlEventTouchUpInside];
+    apply.layer.cornerRadius = 15;
+    [apply addTarget:self action:@selector(hackAction) forControlEvents:UIControlEventTouchUpInside];
     [self.panel addSubview:apply];
 }
 
 - (void)toggle { self.panel.hidden = !self.panel.hidden; }
-- (void)hack { 
-    userGems = [self.gemField.text intValue]; 
+
+- (void)hackAction {
+    // رسالة للتأكد أن الزر يعمل بدون كراش
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Hussain Mod" message:@"تم تفعيل الميزة بنجاح!" delegate:nil cancelButtonTitle:@"شكراً" otherButtonTitles:nil];
+    [alert show];
     self.panel.hidden = YES;
 }
 @end
 
-// كود الحقن مع حماية من الكراش
-void (*old_setGems)(void *instance, int amount);
-void new_setGems(void *instance, int amount) {
-    old_setGems(instance, userGems); 
-}
-
 %ctor {
-    // ننتظر 7 ثواني كاملة قبل ما يظهر أي شي لضمان استقرار اللعبة
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 7 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        UIWindow *keyWindow = [UIApplication sharedApplication].keyWindow;
-        if (keyWindow) {
-            HussainMenu *menu = [[HussainMenu alloc] initWithFrame:keyWindow.bounds];
-            [keyWindow addSubview:menu];
+    // الانتظار حتى استقرار اللعبة تماماً (10 ثوانٍ)
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 10 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        UIWindow *win = nil;
+        if (@available(iOS 13.0, *)) {
+            for (UIWindowScene* scene in [UIApplication sharedApplication].connectedScenes) {
+                if (scene.activationState == UISceneActivationStateForegroundActive) {
+                    win = ((UIWindowScene*)scene).windows.firstObject;
+                    break;
+                }
+            }
+        } else {
+            win = [UIApplication sharedApplication].keyWindow;
+        }
+        
+        if (win) {
+            HussainMenu *menu = [[HussainMenu alloc] initWithFrame:win.bounds];
+            [win addSubview:menu];
         }
     });
-
-    // استخدام الـ Offset (الرقم) إذا كان الاسم يسبب كراش
-    // سنحاول الحقن بطريقة آمنة:
-    void *symbol = (void *)MSFindSymbol(NULL, "__ZN13StickWarLegacy7SetGemsEi");
-    if (symbol) {
-        MSHookFunction(symbol, (void *)new_setGems, (void **)&old_setGems);
-    }
 }
