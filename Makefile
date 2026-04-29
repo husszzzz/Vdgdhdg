@@ -3,9 +3,9 @@ INSTALL_TARGET_PROCESSES = SpringBoard
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = hassanyJob
-hassanyJob_FILES = Tweak.x
-hassanyJob_CFLAGS = -fobjc-arc
-hassanyJob_FRAMEWORKS = UIKit
+TWEAK_NAME = SmartButtons
+SmartButtons_FILES = Tweak.x
+SmartButtons_CFLAGS = -fobjc-arc
+SmartButtons_FRAMEWORKS = UIKit CoreGraphics QuartzCore
 
 include $(THEOS_MAKE_PATH)/tweak.mk
