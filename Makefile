@@ -1,10 +1,11 @@
-export ARCHS = arm64 arm64e
-export TARGET = iphone:clang:latest:14.0
+TARGET := iphone:clang:latest:15.0
+INSTALL_TARGET_PROCESSES = MoonManager
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = AlhussainiWelcome
-AlhussainiWelcome_FILES = Tweak.x
-AlhussainiWelcome_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable -Wno-error
+APPLICATION_NAME = MoonManager
+MoonManager_FILES = main.m MoonRootViewController.m
+MoonManager_FRAMEWORKS = UIKit CoreGraphics
+MoonManager_CFLAGS = -fobjc-arc
 
-include $(THEOS_MAKE_PATH)/tweak.mk
+include $(THEOS)/makefiles/application.mk
