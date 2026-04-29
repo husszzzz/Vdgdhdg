@@ -34,7 +34,7 @@
 
         // النص
         UILabel *msgLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 75, frame.size.width-20, 100)];
-        msgLabel.text = @"شكراً لاستخدامك تطبيقاتنا\nحقوق قناة التلغرام | @iPAFire\nتابعونا للمزيد من التطبيقات والألعاب\nالحصرية لدينا";
+        msgLabel.text = @"شكراً لاستخدامك تطبيقاتنا\nحقوق المطور | حسين الحساني\nتابعونا للمزيد من التطبيقات والألعاب\nالحصرية على موقع Moon";
         msgLabel.numberOfLines = 0;
         msgLabel.textAlignment = NSTextAlignmentCenter;
         msgLabel.font = [UIFont systemFontOfSize:14];
@@ -43,6 +43,7 @@
 
         // زر الإخفاء (Switch)
         UISwitch *hideSw = [[UISwitch alloc] initWithFrame:CGRectMake(20, 185, 0, 0)];
+        hideSw.tag = 100; // لتمييزه لاحقاً
         [self addSubview:hideSw];
         
         UILabel *swLabel = [[UILabel alloc] initWithFrame:CGRectMake(80, 190, 100, 20)];
@@ -52,9 +53,9 @@
 
         // زر القناة (الأزرق)
         UIButton *btn1 = [UIButton buttonWithType:UIButtonTypeSystem];
-        btn1.frame = CGRectMake(20, 230, frame.size.width-40, 45)];
+        btn1.frame = CGRectMake(20, 230, frame.size.width-40, 45); // تم إصلاح القوس هنا
         btn1.backgroundColor = [UIColor colorWithRed:0.18 green:0.35 blue:0.75 alpha:1.0];
-        [btn1 setTitle:@"قناتنا | Our Channel" forState:UIControlStateNormal];
+        [btn1 setTitle:@"موقع Moon | GitHub" forState:UIControlStateNormal];
         [btn1 setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
         btn1.titleLabel.font = [UIFont boldSystemFontOfSize:16];
         btn1.layer.cornerRadius = 5;
@@ -63,7 +64,7 @@
 
         // زر الشكر
         UIButton *btn2 = [UIButton buttonWithType:UIButtonTypeSystem];
-        btn2.frame = CGRectMake(20, 285, frame.size.width-40, 45)];
+        btn2.frame = CGRectMake(20, 285, frame.size.width-40, 45); // تم إصلاح القوس هنا
         btn2.backgroundColor = [UIColor colorWithRed:0.25 green:0.45 blue:0.85 alpha:1.0];
         [btn2 setTitle:@"شكراً | Thanks" forState:UIControlStateNormal];
         [btn2 setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
@@ -76,17 +77,21 @@
 }
 
 -(void)openLink {
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/iPAFire"] options:@{} completionHandler:nil];
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/حسابك"] options:@{} completionHandler:nil];
 }
 
 -(void)dismiss:(UIButton *)sender {
+    UISwitch *sw = (UISwitch *)[self viewWithTag:100];
+    if (sw.isOn) {
+        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"Moon_Hide_Alert"];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+    }
     [UIView animateWithDuration:0.3 animations:^{
         self.superview.alpha = 0;
     } completion:^(BOOL finished) {
         [self.superview removeFromSuperview];
     }];
 }
-
 @end
 
 %hook AppDelegate
@@ -94,13 +99,29 @@
     %orig;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        UIWindow *window = [UIApplication sharedApplication].keyWindow;
-        UIView *bgView = [[UIView alloc] initWithFrame:window.bounds];
-        bgView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.6];
-        [window addSubview:bgView];
-        
-        MoonAlertView *alert = [[MoonAlertView alloc] initWithFrame:CGRectMake((window.bounds.size.width-300)/2, (window.bounds.size.height-350)/2, 300, 350)];
-        [bgView addSubview:alert];
+        if ([[NSUserDefaults standardUserDefaults] boolForKey:@"Moon_Hide_Alert"]) return;
+
+        // طريقة حديثة للحصول على الـ Window لتجنب خطأ deprecated
+        UIWindow *window = nil;
+        if (@available(iOS 13.0, *)) {
+            for (UIWindowScene* windowScene in [UIApplication sharedApplication].connectedScenes) {
+                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
+                    window = windowScene.windows.firstObject;
+                    break;
+                }
+            }
+        } else {
+            window = [UIApplication sharedApplication].keyWindow;
+        }
+
+        if (window) {
+            UIView *bgView = [[UIView alloc] initWithFrame:window.bounds];
+            bgView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.6];
+            [window addSubview:bgView];
+            
+            MoonAlertView *alert = [[MoonAlertView alloc] initWithFrame:CGRectMake((window.bounds.size.width-300)/2, (window.bounds.size.height-350)/2, 300, 350)];
+            [bgView addSubview:alert];
+        }
     });
 }
 %end
