@@ -1,87 +1,64 @@
 #import <UIKit/UIKit.h>
+// استيراد مكتبة التنبيهات المخصصة (يجب أن تكون موجودة في مشروعك)
+#import "SCLAlertView.h" 
 
-@interface HussainMenu : UIView <UITextFieldDelegate>
-@property (nonatomic, strong) UIView *panel;
-@property (nonatomic, strong) UITextField *gemField;
-@property (nonatomic, strong) UIButton *btnH;
-@end
+%hook AppDelegate
 
-@implementation HussainMenu
+- (BOOL)application:(id)application didFinishLaunchingWithOptions:(id)launchOptions {
+    %orig; // تنفيذ الكود الأصلي للعبة أولاً
 
-- (instancetype)initWithFrame:(CGRect)frame {
-    // نجعل الفريم الأساسي صفر حتى لا يغطي اللمس على اللعبة
-    self = [super initWithFrame:CGRectZero]; 
-    if (self) {
-        self.frame = [UIScreen mainScreen].bounds;
-        self.userInteractionEnabled = NO; // نعطل التفاعل مع الخلفية الشفافة
-        [self setupUI];
-    }
-    return self;
-}
-
-- (void)setupUI {
-    // الزر العائم
-    self.btnH = [[UIButton alloc] initWithFrame:CGRectMake(20, 150, 60, 60)];
-    self.btnH.backgroundColor = [UIColor orangeColor];
-    self.btnH.layer.cornerRadius = 30;
-    self.btnH.userInteractionEnabled = YES; // تفعيل اللمس للزر فقط
-    [self.btnH setTitle:@"H" forState:UIControlStateNormal];
-    [self.btnH addTarget:self action:@selector(toggle) forControlEvents:UIControlEventTouchUpInside];
-    [self addSubview:self.btnH];
-
-    // اللوحة الرئيسية
-    self.panel = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 280, 320)];
-    self.panel.center = CGPointMake(self.bounds.size.width / 2, self.bounds.size.height / 2);
-    self.panel.backgroundColor = [UIColor colorWithRed:0.08 green:0.08 blue:0.12 alpha:0.98];
-    self.panel.layer.cornerRadius = 20;
-    self.panel.userInteractionEnabled = YES; // تفعيل اللمس للمنيو فقط
-    self.panel.hidden = YES;
-    [self addSubview:self.panel];
-
-    self.gemField = [[UITextField alloc] initWithFrame:CGRectMake(30, 100, 220, 45)];
-    self.gemField.placeholder = @"عدد المجوهرات...";
-    self.gemField.backgroundColor = [UIColor whiteColor];
-    self.gemField.textAlignment = NSTextAlignmentCenter;
-    self.gemField.keyboardType = UIKeyboardTypeNumberPad;
-    self.gemField.layer.cornerRadius = 10;
-    self.gemField.delegate = self; // لربط الكيبورد
-    [self.panel addSubview:self.gemField];
-
-    UIButton *hackBtn = [[UIButton alloc] initWithFrame:CGRectMake(30, 180, 220, 50)];
-    [hackBtn setTitle:@"تفعيل الغش 🚀" forState:UIControlStateNormal];
-    hackBtn.backgroundColor = [UIColor orangeColor];
-    hackBtn.layer.cornerRadius = 15;
-    [hackBtn addTarget:self action:@selector(doHack) forControlEvents:UIControlEventTouchUpInside];
-    [self.panel addSubview:hackBtn];
-}
-
-- (void)toggle {
-    self.panel.hidden = !self.panel.hidden;
-    if (self.panel.hidden) [self endEditing:YES]; // إغلاق الكيبورد عند إخفاء المنيو
-}
-
-- (void)doHack {
-    [self endEditing:YES]; // إغلاق الكيبورد فوراً
-    self.panel.hidden = YES;
+    // --- إعدادات المظهر ---
+    SCLAlertViewBuilder *builder = [SCLAlertViewBuilder new];
+    // تحديد لون الأزرار والخلفية لتشبه الصورة (لون أزرق DLS)
+    builder.addButtonBackgroundColor = [UIColor colorWithRed:0.20 green:0.40 blue:0.80 alpha:1.0]; // أزرق
+    builder.addButtonTextColor = [UIColor whiteColor];
+    builder.showAnimationType = SCLAlertViewShowAnimationFadeIn;
     
-    // إشعار نجاح
-    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Hussain Mod" message:@"جاري معالجة طلبك..." delegate:nil cancelButtonTitle:@"تم" otherButtonTitles:nil];
-    [alert show];
-}
+    // إنشاء التنبيه
+    SCLAlertView *alert = [[SCLAlertView alloc] initWithBuilder:builder];
+    
+    // --- إضافة الـ Switch (زر الإخفاء) ---
+    // هذا هو السطر الذي يضيف "Toggle Switch" مثل الصورة
+    UISwitch *hideSwitch = [alert addSwitchViewWithLabel:@"إخفاء | HIDE"];
+    
+    // --- إضافة الأزرار ---
+    // الزر الأزرق العريض (مثل "Our Channel")
+    SCLButton *btnMoon = [alert addButton:@"موقع Moon | GitHub" actionBlock:^{
+        // ضع رابط GitHub الخاص بك هنا
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/حسابك"] options:@{} completionHandler:nil];
+    }];
+    // تأكيد اللون الأزرق للزر
+    btnMoon.backgroundColor = [UIColor colorWithRed:0.20 green:0.40 blue:0.80 alpha:1.0];
 
-// كود إغلاق الكيبورد عند الضغط على زر Return
-- (BOOL)textFieldShouldReturn:(UITextField *)textField {
-    [textField resignFirstResponder];
+    // زر الإغلاق/الشكر (اللون الرمادي الفاتح)
+    SCLButton *btnThanks = [alert addButton:@"شكراً | Thanks" validationBlock:^BOOL{
+        // إذا قام المستخدم بتفعيل الـ Switch، نحفظ الخيار حتى لا تظهر الرسالة مرة أخرى
+        if (hideSwitch.isOn) {
+            [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"Moon_Hide_Welcome"];
+            [[NSUserDefaults standardUserDefaults] synchronize];
+        }
+        return YES; // إغلاق التنبيه
+    } actionBlock:^{
+        // لا يوجد إجراء إضافي، فقط الإغلاق
+    }];
+    // تحديد اللون الرمادي للزر الثاني
+    btnThanks.backgroundColor = [UIColor colorWithRed:0.90 green:0.90 blue:0.90 alpha:1.0];
+    btnThanks.textColor = [UIColor blackColor];
+
+
+    // --- إظهار التنبيه ---
+    // التأكد من عدم إظهاره إذا اختار المستخدم "إخفاء" سابقاً
+    BOOL shouldHide = [[NSUserDefaults standardUserDefaults] boolForKey:@"Moon_Hide_Welcome"];
+    if (!shouldHide) {
+        // أيقونة المعلومات (I) بالأعلى، والعنوان، والرسالة
+        [alert showInfo:nil 
+                  title:@"يا هلا بيك | Welcome" 
+               subTitle:@"شكراً لاستخدامك تعديلات حسين الحساني\nتابعنا للمزيد من التطبيقات والألعاب الحصرية\nموقع Moon على GitHub" 
+       closeButtonTitle:nil 
+               duration:0.0f];
+    }
+
     return YES;
 }
-@end
 
-%ctor {
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        UIWindow *win = [UIApplication sharedApplication].keyWindow;
-        if (win) {
-            HussainMenu *menu = [[HussainMenu alloc] initWithFrame:win.bounds];
-            [win addSubview:menu];
-        }
-    });
-}
+%end
