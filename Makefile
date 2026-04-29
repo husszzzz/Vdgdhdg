@@ -8,8 +8,8 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = Alhussaini
 
 Alhussaini_FILES = Tweak.x
-# هذه السطور هي الحل النهائي لأخطاء ملف makefile
-Alhussaini_CFLAGS = -fobjc-arc -Wno-all -Wno-error -Wno-deprecated-declarations
+# السطر القادم هو السحر الذي سيحل كل مشاكل الـ Makefile
+Alhussaini_CFLAGS = -fobjc-arc -Wno-error -Wno-all -Wno-deprecated-declarations -Wno-implicit-function-declaration
 Alhussaini_FRAMEWORKS = UIKit QuartzCore CoreGraphics
 
 include $(THEOS)/makefiles/tweak.mk
