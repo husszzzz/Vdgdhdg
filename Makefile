@@ -3,9 +3,9 @@ INSTALL_TARGET_PROCESSES = SpringBoard
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = MoonDylib
-MoonDylib_FILES = Tweak.x
-MoonDylib_CFLAGS = -fobjc-arc
-MoonDylib_FRAMEWORKS = UIKit
+TWEAK_NAME = hassanyJob
+hassanyJob_FILES = Tweak.x
+hassanyJob_CFLAGS = -fobjc-arc
+hassanyJob_FRAMEWORKS = UIKit CoreGraphics
 
 include $(THEOS_MAKE_PATH)/tweak.mk
