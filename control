@@ -1,9 +1,9 @@
-Package: com.huss.smartbuttons
+Package: com.hassany.smartbuttons
 Name: SmartButtons
 Depends: mobilesubstrate
 Version: 1.0.0
 Architecture: iphoneos-arm
-Description: تطبيق الأزرار الذكية لحفظ الروابط والنصوص
+Description: نظام الأزرار الذكية المتطور
 Maintainer: Hassany
 Author: Hassany
 Section: Tweaks
