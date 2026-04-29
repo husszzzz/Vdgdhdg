@@ -1,4 +1,4 @@
-name: Build hassanyJob Dylib
+name: Build SmartButtons Dylib
 on: [push, pull_request]
 
 jobs:
@@ -19,9 +19,8 @@ jobs:
           export THEOS=~/theos
           make clean all
 
-      - name: Upload Artifact
+      - name: Upload Finished Dylib
         uses: actions/upload-artifact@v4
         with:
-          name: hassanyJob-Dylib
-          # هنا البحث الشامل عن أي ملف دايليب نتج عن البناء
+          name: SmartButtons-Dylib
           path: "**/*.dylib"
