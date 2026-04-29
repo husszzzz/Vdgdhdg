@@ -1,97 +1,69 @@
 #import <UIKit/UIKit.h>
 
-// هيكل البيانات لحفظ الأزرار
-@interface MoonItem : NSObject <NSCoding>
-@property (nonatomic, strong) NSString *name;
-@property (nonatomic, strong) NSString *content;
-@property (nonatomic, assign) BOOL isLink;
+// إعلان لواجهة القائمة الخاصة بك
+@interface MoonViewController : UITableViewController
+@property (nonatomic, strong) NSMutableArray *items;
 @end
 
-@implementation MoonItem
-- (void)encodeWithCoder:(NSCoder *)enc { [enc encodeObject:_name forKey:@"n"]; [enc encodeObject:_content forKey:@"c"]; [enc encodeBool:_isLink forKey:@"l"]; }
-- (id)initWithCoder:(NSCoder *)dec { self = [super init]; _name = [dec decodeObjectForKey:@"n"]; _content = [dec decodeObjectForKey:@"c"]; _isLink = [dec decodeBoolForKey:@"l"]; return self; }
-@end
-
-@interface MoonRootViewController : UITableViewController
-@property (nonatomic, strong) NSMutableArray<MoonItem *> *items;
-@end
-
-@implementation MoonRootViewController
-
+@implementation MoonViewController
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"Moon Manager";
-    self.navigationController.navigationBar.prefersLargeTitles = YES;
-    self.tableView.insetContentViewsToSafeArea = YES;
+    self.title = @"Moon Manager 🌙";
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addItem)];
     
-    // زر الإضافة (+) بتصميم عصري
-    UIBarButtonItem *addBtn = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addItem)];
-    self.navigationItem.rightBarButtonItem = addBtn;
-    
-    [self loadData];
+    // تحميل البيانات من UserDefaults المشترك
+    NSArray *saved = [[NSUserDefaults standardUserDefaults] objectForKey:@"MoonDylibData"];
+    self.items = saved ? [saved mutableCopy] : [NSMutableArray array];
 }
 
 - (void)addItem {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"زر جديد" message:@"أدخل التفاصيل" preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"إضافة جديد" message:nil preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) { tf.placeholder = @"الاسم"; }];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) { tf.placeholder = @"المحتوى"; }];
     
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) { tf.placeholder = @"اسم الزر"; }];
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) { tf.placeholder = @"الرابط أو النص"; }];
-    
-    UIAlertAction *linkAction = [UIAlertAction actionWithTitle:@"حفظ كرابط 🔗" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        [self saveNewItem:alert.textFields[0].text content:alert.textFields[1].text isLink:YES];
-    }];
-    
-    UIAlertAction *textAction = [UIAlertAction actionWithTitle:@"حفظ كنص 📝" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        [self saveNewItem:alert.textFields[0].text content:alert.textFields[1].text isLink:NO];
-    }];
-    
-    [alert addAction:linkAction];
-    [alert addAction:textAction];
-    [alert addAction:[UIAlertAction actionWithTitle:@"إلغاء" style:UIAlertActionStyleCancel handler:nil]];
-    
+    [alert addAction:[UIAlertAction actionWithTitle:@"حفظ" style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
+        NSDictionary *item = @{@"n": alert.textFields[0].text, @"c": alert.textFields[1].text};
+        [self.items addObject:item];
+        [[NSUserDefaults standardUserDefaults] setObject:self.items forKey:@"MoonDylibData"];
+        [self.tableView reloadData];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"إلغاء" style:UIAlertActionStyleCancel bundle:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 
-- (void)saveNewItem:(NSString *)name content:(NSString *)content isLink:(BOOL)isLink {
-    MoonItem *item = [[MoonItem alloc] init];
-    item.name = name; item.content = content; item.isLink = isLink;
-    [self.items addObject:item];
-    [self saveData];
-    [self.tableView reloadData];
-}
-
-// تشغيل الزر عند الضغط
-- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    MoonItem *item = self.items[indexPath.row];
-    if (item.isLink) {
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:item.content] options:@{} completionHandler:nil];
-    } else {
-        UIAlertController *showText = [UIAlertController alertControllerWithTitle:item.name message:item.content preferredStyle:UIAlertControllerStyleAlert];
-        [showText addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleDefault handler:nil]];
-        [self presentViewController:showText animated:YES completion:nil];
-    }
-    [tableView deselectRowAtIndexPath:indexPath animated:YES];
-}
-
-// كود الحفظ التلقائي في الذاكرة
-- (void)saveData {
-    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self.items requiringSecureCoding:NO error:nil];
-    [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"MoonData"];
-}
-
-- (void)loadData {
-    NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"MoonData"];
-    self.items = data ? [NSKeyedUnarchiver unarchiveObjectWithData:data] : [NSMutableArray array];
-}
-
-// إعداد شكل القائمة
 - (NSInteger)tableView:(UITableView *)tv numberOfRowsInSection:(NSInteger)s { return self.items.count; }
 - (UITableViewCell *)tableView:(UITableView *)tv cellForRowAtIndexPath:(NSIndexPath *)ip {
     UITableViewCell *cell = [tv dequeueReusableCellWithIdentifier:@"C"] ?: [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"C"];
-    MoonItem *item = self.items[ip.row];
-    cell.textLabel.text = item.name;
-    cell.detailTextLabel.text = item.isLink ? @"رابط 🔗" : @"نص 📝";
-    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    cell.textLabel.text = self.items[ip.row][@"n"];
+    cell.detailTextLabel.text = self.items[ip.row][@"c"];
     return cell;
 }
 @end
+
+// --- عملية الحقن وإظهار الزر العائم ---
+%hook UIViewController
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    
+    // منع تكرار الزر إذا كان موجوداً مسبقاً
+    if ([self.view viewWithTag:999]) return;
+
+    UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
+    btn.tag = 999;
+    btn.frame = CGRectMake(20, 100, 60, 60);
+    btn.backgroundColor = [UIColor blackColor];
+    btn.layer.cornerRadius = 30;
+    [btn setTitle:@"🌙" forState:UIControlStateNormal];
+    [btn addTarget:self action:@selector(openMoonMenu) forControlEvents:UIControlEventTouchUpInside];
+    
+    // إضافة خاصية السحب للزر (اختياري)
+    [self.view addSubview:btn];
+}
+
+%new
+- (void)openMoonMenu {
+    MoonViewController *vc = [[MoonViewController alloc] init];
+    UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:vc];
+    [self presentViewController:nav animated:YES completion:nil];
+}
+%end
