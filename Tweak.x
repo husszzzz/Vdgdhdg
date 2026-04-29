@@ -1,146 +1,131 @@
 #import <UIKit/UIKit.h>
 
-// --- واجهة مدير الأزرار الذكية ---
-@interface SmartButtonsViewController : UITableViewController
-@property (nonatomic, strong) NSMutableArray *buttonsList;
+// --- واجهة التحكم الرئيسية ---
+@interface SmartButtonsVC : UITableViewController
+@property (nonatomic, strong) NSMutableArray *buttons;
 @end
 
-@implementation SmartButtonsViewController
+@implementation SmartButtonsVC
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.title = @"Smart Buttons 📱";
     self.navigationController.navigationBar.prefersLargeTitles = YES;
     
-    // أزرار التحكم في الشريط العلوي
+    // إعداد الأزرار في الشريط العلوي
     UIBarButtonItem *addBtn = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addNewButton)];
-    UIBarButtonItem *editBtn = self.editButtonItem; // للسحب والإفلات والحذف
-    self.navigationItem.rightBarButtonItems = @[addBtn, editBtn];
+    self.navigationItem.rightBarButtonItems = @[addBtn, self.editButtonItem];
 
-    // تحميل البيانات المحفوظة
     [self loadData];
 }
 
 - (void)loadData {
-    NSArray *savedData = [[NSUserDefaults standardUserDefaults] objectForKey:@"SmartButtons_Hassany"];
-    self.buttonsList = savedData ? [savedData mutableCopy] : [NSMutableArray array];
+    NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"SmartButtons_Data"];
+    if (data) {
+        NSError *error;
+        // استخدام الطريقة الحديثة لتجنب خطأ unarchiveObjectWithData
+        NSSet *classes = [NSSet setWithArray:@[[NSArray class], [NSDictionary class], [NSString class]]];
+        self.buttons = [[NSKeyedUnarchiver unarchivedObjectOfClasses:classes fromData:data error:&error] mutableCopy];
+    }
+    if (!self.buttons) self.buttons = [NSMutableArray array];
 }
 
 - (void)saveData {
-    [[NSUserDefaults standardUserDefaults] setObject:self.buttonsList forKey:@"SmartButtons_Hassany"];
+    NSError *error;
+    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self.buttons requiringSecureCoding:NO error:&error];
+    [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"SmartButtons_Data"];
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 - (void)addNewButton {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"زر جديد ✨" message:@"أدخل الاسم والقيمة" preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"إضافة زر" message:@"أدخل الاسم والقيمة" preferredStyle:UIAlertControllerStyleAlert];
     
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) { tf.placeholder = @"اسم الزر (مثلاً: جوجل)"; }];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) { tf.placeholder = @"اسم الزر"; }];
     [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) { tf.placeholder = @"الرابط أو النص"; }];
     
-    [alert addAction:[UIAlertAction actionWithTitle:@"رابط URL 🔗" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        [self createButtonWithName:alert.textFields[0].text value:alert.textFields[1].text type:@"url"];
+    // إصلاح الـ Selector ليكون متوافقاً
+    [alert addAction:[UIAlertAction actionWithTitle:@"رابط URL" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        [self createBtn:alert.textFields[0].text val:alert.textFields[1].text type:@"url"];
     }]];
     
-    [alert addAction:[UIAlertAction actionWithTitle:@"نص Text 📝" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        [self createButtonWithName:alert.textFields[0].text value:alert.textFields[1].text type:@"text"];
+    [alert addAction:[UIAlertAction actionWithTitle:@"نص Text" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        [self createBtn:alert.textFields[0].text val:alert.textFields[1].text type:@"text"];
     }]];
     
     [alert addAction:[UIAlertAction actionWithTitle:@"إلغاء" style:UIAlertActionStyleCancel handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 
-- (void)createButtonWithName:(NSString *)name value:(NSString *)val type:(NSString *)type {
+- (void)createBtn:(NSString *)name val:(NSString *)val type:(NSString *)type {
     if (name.length == 0 || val.length == 0) return;
-    NSDictionary *newBtn = @{@"name": name, @"value": val, @"type": type};
-    [self.buttonsList insertObject:newBtn atIndex:0];
+    [self.buttons insertObject:@{@"name": name, @"val": val, @"type": type} atIndex:0];
     [self saveData];
     [self.tableView reloadData];
 }
 
-// --- إعدادات الجدول (الأزرار) ---
-
-- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return self.buttonsList.count;
-}
+// إعدادات الجدول
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section { return self.buttons.count; }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     static NSString *cellID = @"SmartCell";
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellID] ?: [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:cellID];
     
-    NSDictionary *data = self.buttonsList[indexPath.row];
-    cell.textLabel.text = data[@"name"];
-    cell.textLabel.font = [UIFont boldSystemFontOfSize:17];
-    cell.detailTextLabel.text = [data[@"type"] isEqualToString:@"url"] ? @"رابط يفتح في المتصفح 🔗" : @"نص يظهر في نافذة 📝";
+    NSDictionary *item = self.buttons[indexPath.row];
+    cell.textLabel.text = item[@"name"];
+    cell.detailTextLabel.text = [item[@"type"] isEqualToString:@"url"] ? @"🔗 فتح رابط" : @"📝 عرض نص";
     cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
-    
     return cell;
 }
 
-// عند الضغط على الزر
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    NSDictionary *data = self.buttonsList[indexPath.row];
+    NSDictionary *item = self.buttons[indexPath.row];
     
-    if ([data[@"type"] isEqualToString:@"url"]) {
-        NSURL *url = [NSURL URLWithString:data[@"value"]];
-        [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+    if ([item[@"type"] isEqualToString:@"url"]) {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:item[@"val"]] options:@{} completionHandler:nil];
     } else {
-        UIAlertController *note = [UIAlertController alertControllerWithTitle:data[@"name"] message:data[@"value"] preferredStyle:UIAlertControllerStyleAlert];
-        [note addAction:[UIAlertAction actionWithTitle:@"إغلاق" style:UIAlertActionStyleCancel handler:nil]];
-        [self presentViewController:note animated:YES completion:nil];
+        UIAlertController *msg = [UIAlertController alertControllerWithTitle:item[@"name"] message:item[@"val"] preferredStyle:UIAlertControllerStyleAlert];
+        [msg addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleCancel handler:nil]];
+        [self presentViewController:msg animated:YES completion:nil];
     }
 }
 
-// السحب والإفلات للترتيب
-- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath {
-    NSDictionary *movedItem = self.buttonsList[sourceIndexPath.row];
-    [self.buttonsList removeObjectAtIndex:sourceIndexPath.row];
-    [self.buttonsList insertObject:movedItem atIndex:destinationIndexPath.row];
-    [self saveData];
-}
-
-// الحذف
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
     if (editingStyle == UITableViewCellEditingStyleDelete) {
-        [self.buttonsList removeObjectAtIndex:indexPath.row];
+        [self.buttons removeObjectAtIndex:indexPath.row];
         [self saveData];
         [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
     }
 }
-
 @end
 
-// --- حقن الزر العائم في النظام ---
+// --- زر القمر العائم ---
 %hook UIWindow
 - (void)becomeKeyWindow {
     %orig;
-    if ([self viewWithTag:1234]) return;
-
-    UIButton *moonBtn = [UIButton buttonWithType:UIButtonTypeSystem];
-    moonBtn.tag = 1234;
-    moonBtn.frame = CGRectMake(20, 200, 60, 60);
-    moonBtn.backgroundColor = [UIColor colorWithRed:0.20 green:0.20 blue:0.20 alpha:0.8];
-    moonBtn.layer.cornerRadius = 30;
-    [moonBtn setTitle:@"🌙" forState:UIControlStateNormal];
-    [moonBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    moonBtn.titleLabel.font = [UIFont systemFontOfSize:30];
+    if ([self viewWithTag:9988]) return;
     
-    // إضافة خاصية السحب للزر العائم
-    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleMoonMove:)];
-    [moonBtn addGestureRecognizer:pan];
+    UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
+    btn.tag = 9988;
+    btn.frame = CGRectMake(20, 150, 55, 55);
+    btn.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.7];
+    btn.layer.cornerRadius = 27.5;
+    [btn setTitle:@"🌙" forState:UIControlStateNormal];
+    btn.titleLabel.font = [UIFont systemFontOfSize:25];
     
-    [moonBtn addTarget:self action:@selector(openSmartButtons) forControlEvents:UIControlEventTouchUpInside];
-    [self addSubview:moonBtn];
+    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleMoonPan:)];
+    [btn addGestureRecognizer:pan];
+    [btn addTarget:self action:@selector(openSmartMenu) forControlEvents:UIControlEventTouchUpInside];
+    
+    [self addSubview:btn];
 }
 
-%new - (void)handleMoonMove:(UIPanGestureRecognizer *)p {
-    UIView *v = p.view;
-    CGPoint loc = [p locationInView:v.superview];
-    v.center = loc;
+%new - (void)handleMoonPan:(UIPanGestureRecognizer *)p {
+    p.view.center = [p locationInView:p.view.superview];
 }
 
-%new - (void)openSmartButtons {
-    SmartButtonsViewController *vc = [[SmartButtonsViewController alloc] init];
+%new - (void)openSmartMenu {
+    SmartButtonsVC *vc = [[SmartButtonsVC alloc] init];
     UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:vc];
     [[self rootViewController] presentViewController:nav animated:YES completion:nil];
 }
