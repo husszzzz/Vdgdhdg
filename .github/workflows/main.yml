@@ -27,7 +27,7 @@ jobs:
           export THEOS=~/theos
           make clean all
 
-      - name: Upload Dylib
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: hassanyJob-Dylib
