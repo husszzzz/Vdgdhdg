@@ -1,64 +1,106 @@
 #import <UIKit/UIKit.h>
-// استيراد مكتبة التنبيهات المخصصة (يجب أن تكون موجودة في مشروعك)
-#import "SCLAlertView.h" 
 
-%hook AppDelegate
+@interface MoonAlertView : UIView
+@end
 
-- (BOOL)application:(id)application didFinishLaunchingWithOptions:(id)launchOptions {
-    %orig; // تنفيذ الكود الأصلي للعبة أولاً
+@implementation MoonAlertView
 
-    // --- إعدادات المظهر ---
-    SCLAlertViewBuilder *builder = [SCLAlertViewBuilder new];
-    // تحديد لون الأزرار والخلفية لتشبه الصورة (لون أزرق DLS)
-    builder.addButtonBackgroundColor = [UIColor colorWithRed:0.20 green:0.40 blue:0.80 alpha:1.0]; // أزرق
-    builder.addButtonTextColor = [UIColor whiteColor];
-    builder.showAnimationType = SCLAlertViewShowAnimationFadeIn;
-    
-    // إنشاء التنبيه
-    SCLAlertView *alert = [[SCLAlertView alloc] initWithBuilder:builder];
-    
-    // --- إضافة الـ Switch (زر الإخفاء) ---
-    // هذا هو السطر الذي يضيف "Toggle Switch" مثل الصورة
-    UISwitch *hideSwitch = [alert addSwitchViewWithLabel:@"إخفاء | HIDE"];
-    
-    // --- إضافة الأزرار ---
-    // الزر الأزرق العريض (مثل "Our Channel")
-    SCLButton *btnMoon = [alert addButton:@"موقع Moon | GitHub" actionBlock:^{
-        // ضع رابط GitHub الخاص بك هنا
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/حسابك"] options:@{} completionHandler:nil];
-    }];
-    // تأكيد اللون الأزرق للزر
-    btnMoon.backgroundColor = [UIColor colorWithRed:0.20 green:0.40 blue:0.80 alpha:1.0];
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.backgroundColor = [UIColor whiteColor];
+        self.layer.cornerRadius = 15;
+        self.layer.masksToBounds = YES;
+        
+        // الأيقونة الزرقاء (i)
+        UIView *iconBg = [[UIView alloc] initWithFrame:CGRectMake((frame.size.width-60)/2, -30, 60, 60)];
+        iconBg.backgroundColor = [UIColor colorWithRed:0.18 green:0.35 blue:0.75 alpha:1.0];
+        iconBg.layer.cornerRadius = 30;
+        [self addSubview:iconBg];
+        
+        UILabel *iconLabel = [[UILabel alloc] initWithFrame:iconBg.bounds];
+        iconLabel.text = @"i";
+        iconLabel.textColor = [UIColor whiteColor];
+        iconLabel.textAlignment = NSTextAlignmentCenter;
+        iconLabel.font = [UIFont boldSystemFontOfSize:30];
+        [iconBg addSubview:iconLabel];
 
-    // زر الإغلاق/الشكر (اللون الرمادي الفاتح)
-    SCLButton *btnThanks = [alert addButton:@"شكراً | Thanks" validationBlock:^BOOL{
-        // إذا قام المستخدم بتفعيل الـ Switch، نحفظ الخيار حتى لا تظهر الرسالة مرة أخرى
-        if (hideSwitch.isOn) {
-            [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"Moon_Hide_Welcome"];
-            [[NSUserDefaults standardUserDefaults] synchronize];
-        }
-        return YES; // إغلاق التنبيه
-    } actionBlock:^{
-        // لا يوجد إجراء إضافي، فقط الإغلاق
-    }];
-    // تحديد اللون الرمادي للزر الثاني
-    btnThanks.backgroundColor = [UIColor colorWithRed:0.90 green:0.90 blue:0.90 alpha:1.0];
-    btnThanks.textColor = [UIColor blackColor];
+        // العنوان
+        UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 40, frame.size.width-20, 30)];
+        titleLabel.text = @"يا هلا بيك | Welcome";
+        titleLabel.textAlignment = NSTextAlignmentCenter;
+        titleLabel.font = [UIFont boldSystemFontOfSize:20];
+        [self addSubview:titleLabel];
 
+        // النص
+        UILabel *msgLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 75, frame.size.width-20, 100)];
+        msgLabel.text = @"شكراً لاستخدامك تطبيقاتنا\nحقوق قناة التلغرام | @iPAFire\nتابعونا للمزيد من التطبيقات والألعاب\nالحصرية لدينا";
+        msgLabel.numberOfLines = 0;
+        msgLabel.textAlignment = NSTextAlignmentCenter;
+        msgLabel.font = [UIFont systemFontOfSize:14];
+        msgLabel.textColor = [UIColor darkGrayColor];
+        [self addSubview:msgLabel];
 
-    // --- إظهار التنبيه ---
-    // التأكد من عدم إظهاره إذا اختار المستخدم "إخفاء" سابقاً
-    BOOL shouldHide = [[NSUserDefaults standardUserDefaults] boolForKey:@"Moon_Hide_Welcome"];
-    if (!shouldHide) {
-        // أيقونة المعلومات (I) بالأعلى، والعنوان، والرسالة
-        [alert showInfo:nil 
-                  title:@"يا هلا بيك | Welcome" 
-               subTitle:@"شكراً لاستخدامك تعديلات حسين الحساني\nتابعنا للمزيد من التطبيقات والألعاب الحصرية\nموقع Moon على GitHub" 
-       closeButtonTitle:nil 
-               duration:0.0f];
+        // زر الإخفاء (Switch)
+        UISwitch *hideSw = [[UISwitch alloc] initWithFrame:CGRectMake(20, 185, 0, 0)];
+        [self addSubview:hideSw];
+        
+        UILabel *swLabel = [[UILabel alloc] initWithFrame:CGRectMake(80, 190, 100, 20)];
+        swLabel.text = @"إخفاء | HIDE";
+        swLabel.font = [UIFont boldSystemFontOfSize:14];
+        [self addSubview:swLabel];
+
+        // زر القناة (الأزرق)
+        UIButton *btn1 = [UIButton buttonWithType:UIButtonTypeSystem];
+        btn1.frame = CGRectMake(20, 230, frame.size.width-40, 45)];
+        btn1.backgroundColor = [UIColor colorWithRed:0.18 green:0.35 blue:0.75 alpha:1.0];
+        [btn1 setTitle:@"قناتنا | Our Channel" forState:UIControlStateNormal];
+        [btn1 setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+        btn1.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+        btn1.layer.cornerRadius = 5;
+        [btn1 addTarget:self action:@selector(openLink) forControlEvents:UIControlEventTouchUpInside];
+        [self addSubview:btn1];
+
+        // زر الشكر
+        UIButton *btn2 = [UIButton buttonWithType:UIButtonTypeSystem];
+        btn2.frame = CGRectMake(20, 285, frame.size.width-40, 45)];
+        btn2.backgroundColor = [UIColor colorWithRed:0.25 green:0.45 blue:0.85 alpha:1.0];
+        [btn2 setTitle:@"شكراً | Thanks" forState:UIControlStateNormal];
+        [btn2 setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+        btn2.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+        btn2.layer.cornerRadius = 5;
+        [btn2 addTarget:self action:@selector(dismiss:) forControlEvents:UIControlEventTouchUpInside];
+        [self addSubview:btn2];
     }
-
-    return YES;
+    return self;
 }
 
+-(void)openLink {
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/iPAFire"] options:@{} completionHandler:nil];
+}
+
+-(void)dismiss:(UIButton *)sender {
+    [UIView animateWithDuration:0.3 animations:^{
+        self.superview.alpha = 0;
+    } completion:^(BOOL finished) {
+        [self.superview removeFromSuperview];
+    }];
+}
+
+@end
+
+%hook AppDelegate
+- (void)applicationDidBecomeActive:(id)application {
+    %orig;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        UIWindow *window = [UIApplication sharedApplication].keyWindow;
+        UIView *bgView = [[UIView alloc] initWithFrame:window.bounds];
+        bgView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.6];
+        [window addSubview:bgView];
+        
+        MoonAlertView *alert = [[MoonAlertView alloc] initWithFrame:CGRectMake((window.bounds.size.width-300)/2, (window.bounds.size.height-350)/2, 300, 350)];
+        [bgView addSubview:alert];
+    });
+}
 %end
