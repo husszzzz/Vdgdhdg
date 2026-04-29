@@ -1,12 +1,11 @@
-TARGET := iphone:clang:latest:15.0
-INSTALL_TARGET_PROCESSES = MoonManager
+TARGET := iphone:clang:latest:14.0
+INSTALL_TARGET_PROCESSES = SpringBoard
 
 include $(THEOS)/makefiles/common.mk
 
-APPLICATION_NAME = MoonManager
-# تأكد من مطابقة أسماء الملفات هنا مع الملفات التي أنشأتها
-MoonManager_FILES = main.m MoonRootViewController.m
-MoonManager_FRAMEWORKS = UIKit CoreGraphics
-MoonManager_CFLAGS = -fobjc-arc
+TWEAK_NAME = MoonDylib
+MoonDylib_FILES = Tweak.x
+MoonDylib_CFLAGS = -fobjc-arc
+MoonDylib_FRAMEWORKS = UIKit
 
-include $(THEOS)/makefiles/application.mk
+include $(THEOS_MAKE_PATH)/tweak.mk
