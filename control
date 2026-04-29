@@ -1,9 +1,9 @@
-Package: com.huss.alhussaini
-Name: Alhussaini
+Package: com.huss.smartbuttons
+Name: SmartButtons
 Depends: mobilesubstrate
-Version: 0.0.1
+Version: 1.0.0
 Architecture: iphoneos-arm
-Description: My Awesome Dylib
-Maintainer: huss
-Author: huss
+Description: تطبيق الأزرار الذكية لحفظ الروابط والنصوص
+Maintainer: Hassany
+Author: Hassany
 Section: Tweaks
