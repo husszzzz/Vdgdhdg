@@ -7,6 +7,6 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = Alhussaini
 Alhussaini_FILES = Tweak.x
-Alhussaini_CFLAGS = -fobjc-arc
+Alhussaini_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable
 
 include $(THEOS_MAKE_PATH)/tweak.mk
