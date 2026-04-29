@@ -1,4 +1,4 @@
-name: Build SmartButtons Dylib
+name: Build SmartButtons
 on: [push, pull_request]
 
 jobs:
@@ -11,16 +11,19 @@ jobs:
       - name: Setup Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          git clone https://github.com/theos/sdks.git ~/theos/sdks
+          # إصلاح مشكلة وجود المجلد مسبقاً
+          if [ ! -d "~/theos/sdks" ]; then
+            git clone https://github.com/theos/sdks.git ~/theos/sdks
+          fi
           echo "THEOS=~/theos" >> $GITHUB_ENV
 
-      - name: Build Dylib
+      - name: Build Project
         run: |
           export THEOS=~/theos
           make clean all
 
-      - name: Upload Finished Dylib
+      - name: Upload Dylib
         uses: actions/upload-artifact@v4
         with:
           name: SmartButtons-Dylib
-          path: "**/*.dylib"
+          path: ".theos/obj/debug/*.dylib"
