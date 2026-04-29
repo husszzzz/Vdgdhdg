@@ -1,11 +1,6 @@
 #import <UIKit/UIKit.h>
 
-/**
- * ALHUSSAINI MOD - ANTI-CRASH VERSION
- * تم إزالة كود الـ Hook المباشر لمنع الخروج المفاجئ
- */
-
-@interface HussainMenu : UIView
+@interface HussainMenu : UIView <UITextFieldDelegate>
 @property (nonatomic, strong) UIView *panel;
 @property (nonatomic, strong) UITextField *gemField;
 @property (nonatomic, strong) UIButton *btnH;
@@ -14,73 +9,76 @@
 @implementation HussainMenu
 
 - (instancetype)initWithFrame:(CGRect)frame {
-    self = [super initWithFrame:frame];
+    // نجعل الفريم الأساسي صفر حتى لا يغطي اللمس على اللعبة
+    self = [super initWithFrame:CGRectZero]; 
     if (self) {
+        self.frame = [UIScreen mainScreen].bounds;
+        self.userInteractionEnabled = NO; // نعطل التفاعل مع الخلفية الشفافة
         [self setupUI];
     }
     return self;
 }
 
 - (void)setupUI {
-    // الزر العائم H
-    self.btnH = [[UIButton alloc] initWithFrame:CGRectMake(50, 150, 60, 60)];
-    self.btnH.backgroundColor = [[UIColor orangeColor] colorWithAlphaComponent:0.8];
+    // الزر العائم
+    self.btnH = [[UIButton alloc] initWithFrame:CGRectMake(20, 150, 60, 60)];
+    self.btnH.backgroundColor = [UIColor orangeColor];
     self.btnH.layer.cornerRadius = 30;
+    self.btnH.userInteractionEnabled = YES; // تفعيل اللمس للزر فقط
     [self.btnH setTitle:@"H" forState:UIControlStateNormal];
     [self.btnH addTarget:self action:@selector(toggle) forControlEvents:UIControlEventTouchUpInside];
     [self addSubview:self.btnH];
 
-    // اللوحة الرئيسية (المنيو)
-    self.panel = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 280, 300)];
+    // اللوحة الرئيسية
+    self.panel = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 280, 320)];
     self.panel.center = CGPointMake(self.bounds.size.width / 2, self.bounds.size.height / 2);
-    self.panel.backgroundColor = [UIColor colorWithRed:0.05 green:0.05 blue:0.10 alpha:0.95];
+    self.panel.backgroundColor = [UIColor colorWithRed:0.08 green:0.08 blue:0.12 alpha:0.98];
     self.panel.layer.cornerRadius = 20;
+    self.panel.userInteractionEnabled = YES; // تفعيل اللمس للمنيو فقط
     self.panel.hidden = YES;
     [self addSubview:self.panel];
 
-    // خانة الإدخال
     self.gemField = [[UITextField alloc] initWithFrame:CGRectMake(30, 100, 220, 45)];
-    self.gemField.placeholder = @"أدخل القيمة هنا...";
+    self.gemField.placeholder = @"عدد المجوهرات...";
     self.gemField.backgroundColor = [UIColor whiteColor];
     self.gemField.textAlignment = NSTextAlignmentCenter;
     self.gemField.keyboardType = UIKeyboardTypeNumberPad;
     self.gemField.layer.cornerRadius = 10;
+    self.gemField.delegate = self; // لربط الكيبورد
     [self.panel addSubview:self.gemField];
 
-    // زر التفعيل
-    UIButton *apply = [[UIButton alloc] initWithFrame:CGRectMake(30, 180, 220, 50)];
-    [apply setTitle:@"تعديل 🚀" forState:UIControlStateNormal];
-    apply.backgroundColor = [UIColor orangeColor];
-    apply.layer.cornerRadius = 15;
-    [apply addTarget:self action:@selector(hackAction) forControlEvents:UIControlEventTouchUpInside];
-    [self.panel addSubview:apply];
+    UIButton *hackBtn = [[UIButton alloc] initWithFrame:CGRectMake(30, 180, 220, 50)];
+    [hackBtn setTitle:@"تفعيل الغش 🚀" forState:UIControlStateNormal];
+    hackBtn.backgroundColor = [UIColor orangeColor];
+    hackBtn.layer.cornerRadius = 15;
+    [hackBtn addTarget:self action:@selector(doHack) forControlEvents:UIControlEventTouchUpInside];
+    [self.panel addSubview:hackBtn];
 }
 
-- (void)toggle { self.panel.hidden = !self.panel.hidden; }
+- (void)toggle {
+    self.panel.hidden = !self.panel.hidden;
+    if (self.panel.hidden) [self endEditing:YES]; // إغلاق الكيبورد عند إخفاء المنيو
+}
 
-- (void)hackAction {
-    // رسالة للتأكد أن الزر يعمل بدون كراش
-    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Hussain Mod" message:@"تم تفعيل الميزة بنجاح!" delegate:nil cancelButtonTitle:@"شكراً" otherButtonTitles:nil];
-    [alert show];
+- (void)doHack {
+    [self endEditing:YES]; // إغلاق الكيبورد فوراً
     self.panel.hidden = YES;
+    
+    // إشعار نجاح
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Hussain Mod" message:@"جاري معالجة طلبك..." delegate:nil cancelButtonTitle:@"تم" otherButtonTitles:nil];
+    [alert show];
+}
+
+// كود إغلاق الكيبورد عند الضغط على زر Return
+- (BOOL)textFieldShouldReturn:(UITextField *)textField {
+    [textField resignFirstResponder];
+    return YES;
 }
 @end
 
 %ctor {
-    // الانتظار حتى استقرار اللعبة تماماً (10 ثوانٍ)
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 10 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        UIWindow *win = nil;
-        if (@available(iOS 13.0, *)) {
-            for (UIWindowScene* scene in [UIApplication sharedApplication].connectedScenes) {
-                if (scene.activationState == UISceneActivationStateForegroundActive) {
-                    win = ((UIWindowScene*)scene).windows.firstObject;
-                    break;
-                }
-            }
-        } else {
-            win = [UIApplication sharedApplication].keyWindow;
-        }
-        
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        UIWindow *win = [UIApplication sharedApplication].keyWindow;
         if (win) {
             HussainMenu *menu = [[HussainMenu alloc] initWithFrame:win.bounds];
             [win addSubview:menu];
