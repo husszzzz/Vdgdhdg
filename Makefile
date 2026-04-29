@@ -8,8 +8,8 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = Alhussaini
 
 Alhussaini_FILES = Tweak.x
-# أضفت خيار -Wno-error لضمان التجميع حتى لو وجدت تحذيرات بسيطة
 Alhussaini_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable -Wno-implicit-function-declaration
+# تأكد من وجود AudioToolbox هنا لربط وظائف الاهتزاز
 Alhussaini_FRAMEWORKS = UIKit QuartzCore AudioToolbox CoreGraphics
 
 include $(THEOS)/makefiles/tweak.mk
