@@ -1,9 +1,9 @@
-Package: com.hassany.smartbuttons
-Name: SmartButtons
-Depends: mobilesubstrate
+Package: com.alhussaini.smartbuttons
+Name: Smart Buttons
 Version: 1.0.0
 Architecture: iphoneos-arm
-Description: نظام الأزرار الذكية المتطور
-Maintainer: Hassany
-Author: Hassany
+Description: أضف أزرارك الذكية (رابط/نص) ورتبها.
+Maintainer: Alhussaini
+Author: Alhussaini
 Section: Tweaks
+Depends: firmware (>= 13.0), preferenceloader
