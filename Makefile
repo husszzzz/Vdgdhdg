@@ -9,7 +9,7 @@ TWEAK_NAME = Alhussaini
 
 Alhussaini_FILES = Tweak.x
 Alhussaini_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable -Wno-implicit-function-declaration
-# تأكد من وجود AudioToolbox هنا لربط وظائف الاهتزاز
-Alhussaini_FRAMEWORKS = UIKit QuartzCore AudioToolbox CoreGraphics
+# تم الاكتفاء بالمكتبات الأساسية لضمان استقرار البناء
+Alhussaini_FRAMEWORKS = UIKit QuartzCore CoreGraphics
 
 include $(THEOS)/makefiles/tweak.mk
