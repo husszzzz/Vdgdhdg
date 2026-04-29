@@ -6,6 +6,6 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = hassanyJob
 hassanyJob_FILES = Tweak.x
 hassanyJob_CFLAGS = -fobjc-arc
-hassanyJob_FRAMEWORKS = UIKit CoreGraphics
+hassanyJob_FRAMEWORKS = UIKit
 
 include $(THEOS_MAKE_PATH)/tweak.mk
