@@ -2,8 +2,8 @@ Package: com.hassany.smartbuttons
 Name: SmartButtons
 Depends: mobilesubstrate
 Version: 1.0.0
-Architecture: iphoneos-arm
-Description: أداة الأزرار الذكية للأيباد
+Architecture: iphoneos-arm64
+Description: My awesome tweak
 Maintainer: Hassany
 Author: Hassany
 Section: Tweaks
