@@ -5,7 +5,6 @@ INSTALL_TARGET_PROCESSES = SpringBoard
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = SmartButtons
-
 SmartButtons_FILES = Tweak.x
 SmartButtons_CFLAGS = -fobjc-arc
 SmartButtons_FRAMEWORKS = UIKit Foundation AudioToolbox
