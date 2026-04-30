@@ -15,19 +15,17 @@ jobs:
       - name: Setup Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          mkdir -p ~/theos/sdks
-          # تحميل SDK مضغوط ومضمون
-          curl -L "https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz" -o ~/theos/sdks/sdk.tar.xz
-          tar -xf ~/theos/sdks/sdk.tar.xz -C ~/theos/sdks
+          # تحميل الـ SDK بطريقة الـ Clone لضمان عدم تلف الملف
+          git clone --depth 1 https://github.com/theos/sdks.git ~/theos/sdks
           echo "THEOS=~/theos" >> $GITHUB_ENV
 
-      - name: Build Tweak
+      - name: Build Package
         run: |
           export THEOS=~/theos
           make package FINALPACKAGE=1
           
-      - name: Save DEB
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SmartButtons-Tweak
+          name: SmartButtons-Package
           path: packages/*.deb
