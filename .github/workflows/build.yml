@@ -1,4 +1,4 @@
-name: Build_SmartButtons
+name: Build_Tweak
 
 on:
   push:
@@ -15,15 +15,17 @@ jobs:
       - name: Setup Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          git clone https://github.com/theos/sdks.git ~/theos/sdks
+          curl -LO https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz
+          tar -xf iPhoneOS14.5.sdk.tar.xz -C ~/theos/sdks
           echo "THEOS=~/theos" >> $GITHUB_ENV
 
       - name: Build Package
         run: |
+          export THEOS=~/theos
           make package FINALPACKAGE=1
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SmartButtons-DEB
+          name: SmartButtons-Deb
           path: packages/*.deb
