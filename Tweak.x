@@ -5,22 +5,21 @@
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     %orig;
     
-    // اهتزاز لمسي ذكي
-    UIImpactFeedbackGenerator *haptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleMedium];
+    // اهتزاز خفيف عند اللمس
+    UIImpactFeedbackGenerator *haptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
     [haptic impactOccurred];
 
-    // تأثير التصغير والشفافية
-    [UIView animateWithDuration:0.12 animations:^{
-        self.transform = CGAffineTransformMakeScale(0.90, 0.90);
-        self.alpha = 0.8;
+    // أنيميشن التصغير
+    [UIView animateWithDuration:0.1 animations:^{
+        self.transform = CGAffineTransformMakeScale(0.93, 0.93);
     }];
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     %orig;
-    [UIView animateWithDuration:0.2 animations:^{
+    // رجوع الحجم الطبيعي
+    [UIView animateWithDuration:0.1 animations:^{
         self.transform = CGAffineTransformIdentity;
-        self.alpha = 1.0;
     }];
 }
 
