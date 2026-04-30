@@ -3,7 +3,7 @@ Name: SmartButtons
 Depends: mobilesubstrate
 Version: 1.0.0
 Architecture: iphoneos-arm64
-Description: My awesome tweak
+Description: Professional Haptic Buttons Tweak
 Maintainer: Hassany
 Author: Hassany
 Section: Tweaks
