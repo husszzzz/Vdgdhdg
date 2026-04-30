@@ -9,17 +9,20 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Setup Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          # تحميل الـ SDK بطريقة الـ Clone لضمان عدم تلف الملف
-          git clone --depth 1 https://github.com/theos/sdks.git ~/theos/sdks
+          # استنساخ الـ SDKs مباشرة من المستودع الرسمي لضمان سلامتها
+          mkdir -p ~/theos/sdks
+          git clone --depth 1 https://github.com/theos/sdks.git ~/theos/sdks/official
+          # نقل ملف الـ SDK للمكان الصحيح
+          mv ~/theos/sdks/official/iPhoneOS14.5.sdk ~/theos/sdks/
           echo "THEOS=~/theos" >> $GITHUB_ENV
 
-      - name: Build Package
+      - name: Build Tweak
         run: |
           export THEOS=~/theos
           make package FINALPACKAGE=1
@@ -27,5 +30,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SmartButtons-Package
+          name: SmartButtons-Deb
           path: packages/*.deb
