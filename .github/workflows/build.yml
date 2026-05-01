@@ -6,17 +6,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Dependencies (Installing ldid)
+      - name: Setup Dependencies (ldid)
         run: |
           brew install ldid
 
-      - name: Setup Theos
+      - name: Setup Theos & SDKs
         run: |
+          # مسح أي مخلفات قديمة لضمان عدم حدوث تضارب
+          rm -rf ~/theos
+          # تحميل Theos
           git clone --recursive https://github.com/theos/theos.git ~/theos
+          # تحميل SDKs بشكل منفصل ومنظم
           git clone --depth 1 https://github.com/theos/sdks.git ~/theos/sdks
+          # تعريف المسارات للسيرفر
           echo "THEOS=~/theos" >> $GITHUB_ENV
 
-      - name: Build
+      - name: Build Tweak
         run: |
           export THEOS=~/theos
           make package FINALPACKAGE=1
