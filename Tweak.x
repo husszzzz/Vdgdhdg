@@ -1,8 +1,6 @@
 #import <UIKit/UIKit.h>
-#import <LocalAuthentication/LocalAuthentication.h>
 
-// --- النماذج البرمجية ---
-
+// --- نموذج البيانات ---
 @interface CustomButtonModel : NSObject <NSSecureCoding>
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) NSString *type; 
@@ -30,102 +28,82 @@
 }
 @end
 
-// --- حل مشكلة الخطأ في الصورة: تعريف الـ Interface للـ Hook ---
-@interface UIViewController (HassanyExtension)
-- (void)openHassany;
-@end
-
-// --- واجهة الإعدادات المتقدمة ---
-
-@interface HassanySettings : UIViewController
+// --- واجهة الإعدادات (iPhone Style) ---
+@interface HassanySettings : UITableViewController
 @end
 
 @implementation HassanySettings
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"إعدادات الحسني";
-    self.view.backgroundColor = [UIColor systemGroupedBackgroundColor];
-    
-    UIScrollView *scroll = [[UIScrollView alloc] initWithFrame:self.view.bounds];
-    [self.view addSubview:scroll];
-    
-    // 1. زر تبديل القفل
-    UIButton *lockBtn = [UIButton buttonWithType:UIButtonTypeSystem];
-    lockBtn.frame = CGRectMake(20, 30, self.view.frame.size.width - 40, 50);
-    lockBtn.backgroundColor = [UIColor secondarySystemBackgroundColor];
-    lockBtn.layer.cornerRadius = 10;
-    BOOL currentLock = [[NSUserDefaults standardUserDefaults] boolForKey:@"HassanyLock"];
-    [lockBtn setTitle:currentLock ? @"القفل: مفعل ✅" : @"القفل: معطل ❌" forState:UIControlStateNormal];
-    [lockBtn addTarget:self action:@selector(toggleLock:) forControlEvents:UIControlEventTouchUpInside];
-    [scroll addSubview:lockBtn];
-
-    // 2. تغيير حرف الزر العائم
-    UILabel *charLabel = [[UILabel alloc] initWithFrame:CGRectMake(25, 100, 200, 30)];
-    charLabel.text = @"حرف الزر العائم:";
-    [scroll addSubview:charLabel];
-    
-    UITextField *charInput = [[UITextField alloc] initWithFrame:CGRectMake(20, 130, self.view.frame.size.width - 40, 45)];
-    charInput.backgroundColor = [UIColor secondarySystemBackgroundColor];
-    charInput.layer.cornerRadius = 10;
-    charInput.text = [[NSUserDefaults standardUserDefaults] stringForKey:@"HassanyChar"] ?: @"H";
-    charInput.textAlignment = NSTextAlignmentCenter;
-    [charInput addTarget:self action:@selector(saveChar:) forControlEvents:UIControlEventEditingChanged];
-    [scroll addSubview:charInput];
-
-    // 3. التصدير والاستيراد
-    UIButton *exportBtn = [UIButton buttonWithType:UIButtonTypeSystem];
-    exportBtn.frame = CGRectMake(20, 200, self.view.frame.size.width - 40, 50);
-    [exportBtn setTitle:@"تصدير البيانات (نسخ كود)" forState:UIControlStateNormal];
-    [exportBtn addTarget:self action:@selector(exportData) forControlEvents:UIControlEventTouchUpInside];
-    [scroll addSubview:exportBtn];
-    
-    UIButton *importBtn = [UIButton buttonWithType:UIButtonTypeSystem];
-    importBtn.frame = CGRectMake(20, 260, self.view.frame.size.width - 40, 50);
-    [importBtn setTitle:@"استيراد البيانات (لصق كود)" forState:UIControlStateNormal];
-    [importBtn addTarget:self action:@selector(importData) forControlEvents:UIControlEventTouchUpInside];
-    [scroll addSubview:importBtn];
+    self.title = @"الإعدادات";
+    [self.tableView registerClass:[UITableViewCell class] forCellReuseIdentifier:@"SetCell"];
 }
 
-- (void)toggleLock:(UIButton *)sender {
-    BOOL current = [[NSUserDefaults standardUserDefaults] boolForKey:@"HassanyLock"];
-    [[NSUserDefaults standardUserDefaults] setBool:!current forKey:@"HassanyLock"];
-    [sender setTitle:!current ? @"القفل: مفعل ✅" : @"القفل: معطل ❌" forState:UIControlStateNormal];
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return 3; }
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    if (section == 0) return 2; // تخصيص الزر
+    if (section == 1) return 2; // نقل البيانات
+    return 1; // فريق التطوير
 }
 
-- (void)saveChar:(UITextField *)field {
-    if (field.text.length > 0) {
-        [[NSUserDefaults standardUserDefaults] setObject:field.text forKey:@"HassanyChar"];
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    if (section == 0) return @"تخصيset الزر العائم";
+    if (section == 1) return @"البيانات";
+    return @"حول";
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:@"SetCell"];
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    
+    if (indexPath.section == 0) {
+        if (indexPath.row == 0) {
+            cell.textLabel.text = @"تغيير حرف الزر";
+            cell.detailTextLabel.text = [[NSUserDefaults standardUserDefaults] stringForKey:@"HChar"] ?: @"H";
+        } else {
+            cell.textLabel.text = @"لون الزر العائم";
+            cell.detailTextLabel.text = @"اختر لون";
+        }
+    } else if (indexPath.section == 1) {
+        cell.textLabel.text = (indexPath.row == 0) ? @"تصدير (نسخ الكود)" : @"استيراد (لصق الكود)";
+    } else {
+        cell.textLabel.text = @"فريق التطوير";
+        cell.detailTextLabel.text = @"المصمم الحسني";
     }
+    return cell;
 }
 
-- (void)exportData {
-    NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"HassanyButtons"];
-    NSString *base64 = [data base64EncodedStringWithOptions:0];
-    [UIPasteboard generalPasteboard].string = base64 ?: @"";
-    UIAlertController *a = [UIAlertController alertControllerWithTitle:@"تم النسخ" message:@"انسخ هذا الكود وأرسله لمن تريد." preferredStyle:UIAlertControllerStyleAlert];
-    [a addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleDefault handler:nil]];
-    [self presentViewController:a animated:YES completion:nil];
-}
-
-- (void)importData {
-    NSString *input = [UIPasteboard generalPasteboard].string;
-    NSData *data = [[NSData alloc] initWithBase64EncodedString:input options:0];
-    if (data) {
-        [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"HassanyButtons"];
-        UIAlertController *a = [UIAlertController alertControllerWithTitle:@"نجح الاستيراد" message:@"تم تحديث بيانات الأزرار بنجاح." preferredStyle:UIAlertControllerStyleAlert];
-        [a addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleDefault handler:nil]];
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    if (indexPath.section == 0 && indexPath.row == 0) {
+        UIAlertController *a = [UIAlertController alertControllerWithTitle:@"تغيير الحرف" message:nil preferredStyle:UIAlertControllerStyleAlert];
+        [a addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"حرف واحد فقط"; }];
+        [a addAction:[UIAlertAction actionWithTitle:@"حفظ" style:UIAlertActionStyleDefault handler:^(UIAlertAction *act) {
+            [[NSUserDefaults standardUserDefaults] setObject:a.textFields[0].text forKey:@"HChar"];
+            [self.tableView reloadData];
+        }]];
         [self presentViewController:a animated:YES completion:nil];
+    }
+    // ميزة التصدير والاستيراد
+    if (indexPath.section == 1) {
+        if (indexPath.row == 0) {
+            NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"HButtons"];
+            [UIPasteboard generalPasteboard].string = [data base64EncodedStringWithOptions:0];
+        } else {
+            NSData *data = [[NSData alloc] initWithBase64EncodedString:[UIPasteboard generalPasteboard].string options:0];
+            if (data) [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"HButtons"];
+        }
     }
 }
 @end
 
-// --- الواجهة الرئيسية مع المجلدات ---
-
-@interface HassanyDashboard : UIViewController <UITableViewDelegate, UITableViewDataSource>
+// --- واجهة اللوحة الرئيسية ---
+@interface HassanyDashboard : UIViewController <UITableViewDelegate, UITableViewDataSource, UISearchResultsUpdating>
 @property (nonatomic, strong) UITableView *tableView;
 @property (nonatomic, strong) NSMutableArray<CustomButtonModel *> *userButtons;
-@property (nonatomic, strong) NSMutableArray *sectionTitles;
-@property (nonatomic, strong) NSMutableDictionary *sectionData;
+@property (nonatomic, strong) NSMutableArray<CustomButtonModel *> *filteredButtons;
+@property (nonatomic, strong) UISearchController *searchController;
 @end
 
 @implementation HassanyDashboard
@@ -134,7 +112,12 @@
     [super viewDidLoad];
     self.title = @"لوحة تحكم الحسني";
     self.view.backgroundColor = [UIColor systemBackgroundColor];
-    [self loadAndOrganize];
+    [self loadData];
+
+    // البحث
+    self.searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
+    self.searchController.searchResultsUpdater = self;
+    self.navigationItem.searchController = self.searchController;
 
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleInsetGrouped];
     self.tableView.delegate = self;
@@ -142,104 +125,89 @@
     [self.view addSubview:self.tableView];
 
     UIBarButtonItem *add = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addNewButton)];
-    UIBarButtonItem *sets = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"gearshape.fill"] style:UIBarButtonItemStylePlain target:self action:@selector(openSettings)];
+    UIBarButtonItem *sets = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"gear"] style:UIBarButtonItemStylePlain target:self action:@selector(openSettings)];
     self.navigationItem.rightBarButtonItems = @[add, sets];
 }
 
-- (void)openSettings {
-    [self.navigationController pushViewController:[[HassanySettings alloc] init] animated:YES];
+- (void)updateSearchResultsForSearchController:(UISearchController *)sc {
+    NSString *txt = sc.searchBar.text;
+    if (txt.length > 0) {
+        self.filteredButtons = [[self.userButtons filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"name CONTAINS[cd] %@", txt]] mutableCopy];
+    } else {
+        self.filteredButtons = [self.userButtons mutableCopy];
+    }
+    [self.tableView reloadData];
 }
 
-- (void)loadAndOrganize {
-    NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"HassanyButtons"];
+- (void)loadData {
+    NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"HButtons"];
     if (data) {
         NSSet *classes = [NSSet setWithArray:@[[NSMutableArray class], [CustomButtonModel class], [NSString class], [UIColor class]]];
         self.userButtons = [NSKeyedUnarchiver unarchivedObjectOfClasses:classes fromData:data error:nil];
     }
-    self.userButtons = self.userButtons ?: [[NSMutableArray alloc] init];
-    
-    self.sectionData = [NSMutableDictionary dictionary];
-    for (CustomButtonModel *m in self.userButtons) {
-        NSString *cat = m.category ?: @"عام";
-        if (!self.sectionData[cat]) self.sectionData[cat] = [NSMutableArray array];
-        [self.sectionData[cat] addObject:m];
-    }
-    self.sectionTitles = [[self.sectionData allKeys] sortedArrayUsingSelector:@selector(localizedCaseInsensitiveCompare:)].mutableCopy;
+    self.userButtons = self.userButtons ?: [NSMutableArray array];
+    self.filteredButtons = [self.userButtons mutableCopy];
 }
 
-- (NSInteger)numberOfSectionsInTableView:(UITableView *)t { return self.sectionTitles.count; }
-- (NSString *)tableView:(UITableView *)t titleForHeaderInSection:(NSInteger)s { return self.sectionTitles[s]; }
-- (NSInteger)tableView:(UITableView *)t numberOfRowsInSection:(NSInteger)s { return ((NSArray *)self.sectionData[self.sectionTitles[s]]).count; }
-
-- (UITableViewCell *)tableView:(UITableView *)t cellForRowAtIndexPath:(NSIndexPath *)i {
-    UITableViewCell *c = [t dequeueReusableCellWithIdentifier:@"c"] ?: [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"c"];
-    CustomButtonModel *m = self.sectionData[self.sectionTitles[i.section]][i.row];
-    c.textLabel.text = m.name;
-    c.detailTextLabel.text = m.type;
-    return c;
+- (void)openSettings {
+    [self.navigationController pushViewController:[[HassanySettings alloc] initWithStyle:UITableViewStyleGrouped] animated:YES];
 }
 
 - (void)addNewButton {
-    UIAlertController *a = [UIAlertController alertControllerWithTitle:@"إضافة زر" message:nil preferredStyle:UIAlertControllerStyleAlert];
-    [a addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"الاسم"; }];
-    [a addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"المحتوى (رابط/نص)"; }];
-    [a addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"المجلد (مثلاً: ببجي)"; }];
+    UIAlertController *a = [UIAlertController alertControllerWithTitle:@"إضافة جديد" message:nil preferredStyle:UIAlertControllerStyleAlert];
+    [a addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"اسم الزر"; }];
+    [a addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"المحتوى"; }];
+    [a addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"المجلد"; }];
     
-    [a addAction:[UIAlertAction actionWithTitle:@"حفظ" style:UIAlertActionStyleDefault handler:^(UIAlertAction *act) {
-        CustomButtonModel *m = [[CustomButtonModel alloc] init];
-        m.name = a.textFields[0].text;
-        m.content = a.textFields[1].text;
-        m.category = a.textFields[2].text.length > 0 ? a.textFields[2].text : @"عام";
-        m.type = [m.content hasPrefix:@"http"] ? @"رابط" : @"نص";
-        [self.userButtons addObject:m];
-        [self saveAll];
-    }]];
+    [a addAction:[UIAlertAction actionWithTitle:@"حفظ كرابط" style:UITableViewCellAccessoryNone handler:^(UIAlertAction *act) { [self save:a type:@"رابط"]; }]];
+    [a addAction:[UIAlertAction actionWithTitle:@"حفظ كنص" style:UITableViewCellAccessoryNone handler:^(UIAlertAction *act) { [self save:a type:@"نص"]; }]];
     [self presentViewController:a animated:YES completion:nil];
 }
 
-- (void)saveAll {
+- (void)save:(UIAlertController *)a type:(NSString *)type {
+    CustomButtonModel *m = [[CustomButtonModel alloc] init];
+    m.name = a.textFields[0].text; m.content = a.textFields[1].text;
+    m.category = a.textFields[2].text ?: @"عام"; m.type = type;
+    [self.userButtons addObject:m];
     NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self.userButtons requiringSecureCoding:YES error:nil];
-    [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"HassanyButtons"];
-    [self loadAndOrganize];
-    [self.tableView reloadData];
+    [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"HButtons"];
+    [self loadData]; [self.tableView reloadData];
+}
+
+- (NSInteger)tableView:(UITableView *)t numberOfRowsInSection:(NSInteger)s { return self.filteredButtons.count; }
+- (UITableViewCell *)tableView:(UITableView *)t cellForRowAtIndexPath:(NSIndexPath *)i {
+    UITableViewCell *c = [t dequeueReusableCellWithIdentifier:@"c"] ?: [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"c"];
+    CustomButtonModel *m = self.filteredButtons[i.row];
+    c.textLabel.text = m.name;
+    c.detailTextLabel.text = [NSString stringWithFormat:@"%@ | %@", m.category, m.type];
+    return c;
 }
 @end
 
-// --- كود الـ Hook النهائي ---
+// --- الـ Hook والتفعيل المرتب ---
+@interface UIViewController (Hassany)
+- (void)openHassany;
+@end
 
 %hook UIViewController
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        NSString *hChar = [[NSUserDefaults standardUserDefaults] stringForKey:@"HassanyChar"] ?: @"H";
         UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
-        btn.frame = CGRectMake(20, 100, 50, 50);
+        btn.frame = CGRectMake(30, 150, 55, 55);
         btn.backgroundColor = [UIColor systemBlueColor];
-        [btn setTitle:hChar forState:UIControlStateNormal];
+        [btn setTitle:[[NSUserDefaults standardUserDefaults] stringForKey:@"HChar"] ?: @"H" forState:UIControlStateNormal];
         btn.tintColor = [UIColor whiteColor];
-        btn.layer.cornerRadius = 25;
-        [btn addTarget:self action:@selector(checkLockAndOpen) forControlEvents:UIControlEventTouchUpInside];
-        UIWindow *window = [UIApplication sharedApplication].windows.firstObject;
-        [window addSubview:btn];
+        btn.layer.cornerRadius = 27.5;
+        btn.layer.shadowOpacity = 0.5;
+        [btn addTarget:self action:@selector(openHassany) forControlEvents:UIControlEventTouchUpInside];
+        [[UIApplication sharedApplication].windows.firstObject addSubview:btn];
     });
 }
-
-%new - (void)checkLockAndOpen {
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"HassanyLock"]) {
-        LAContext *context = [[LAContext alloc] init];
-        [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:@"يرجى التحقق لفتح لوحة الحسني" reply:^(BOOL success, NSError *error) {
-            if (success) {
-                dispatch_async(dispatch_get_main_queue(), ^{ [self openHassany]; });
-            }
-        }];
-    } else {
-        [self openHassany];
-    }
-}
-
 %new - (void)openHassany {
     UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:[[HassanyDashboard alloc] init]];
+    nav.modalPresentationStyle = UIModalPresentationFormSheet;
     [self presentViewController:nav animated:YES completion:nil];
 }
 %end
