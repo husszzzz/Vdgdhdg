@@ -1,12 +1,10 @@
 #import <UIKit/UIKit.h>
 
-void showPinLock() {
-    // تأخير بسيط لضمان أن واجهة اللعبة تحملت بالكامل
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        
+void showLock() {
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         UIWindow *window = nil;
         
-        // حل مشكلة keyWindow المتوقفة في الإصدارات الجديدة (iOS 13+)
+        // طريقة الحصول على النافذة في الإصدارات الحديثة (iOS 13+)
         if (@available(iOS 13.0, *)) {
             for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
                 if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
@@ -16,46 +14,43 @@ void showPinLock() {
             }
         }
         
-        // إذا كان النظام قديماً أو لم يجد نافذة Scene
         if (!window) {
-            window = [UIApplication sharedApplication].keyWindow;
+            window = [UIApplication sharedApplication].windows.firstObject;
         }
 
         UIViewController *root = window.rootViewController;
         if (!root) return;
 
         UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"نظام الحماية"
-                                                                       message:@"ادخل كود التفعيل (HU) للاستمرار"
+                                                                       message:@"ادخل الكود للاستمرار"
                                                                 preferredStyle:UIAlertControllerStyleAlert];
-        
+
         [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-            textField.placeholder = @"الكود هنا...";
+            textField.placeholder = @"ادخل الكود هنا...";
             textField.autocapitalizationType = UITextAutocapitalizationTypeAllCharacters;
         }];
-        
-        UIAlertAction *checkAction = [UIAlertAction actionWithTitle:@"دخول" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-            NSString *code = alert.textFields.firstObject.text;
+
+        UIAlertAction *login = [UIAlertAction actionWithTitle:@"دخول" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+            NSString *input = alert.textFields.firstObject.text;
             
-            if ([code isEqualToString:@"HU"]) {
-                // الكود صحيح ✅
-                UIAlertController *success = [UIAlertController alertControllerWithTitle:@"✅"
-                                                                               message:@"تم التحقق بنجاح!"
-                                                                        preferredStyle:UIAlertControllerStyleAlert];
+            if ([input isEqualToString:@"HU"]) {
+                // إذا الكود صح
+                UIAlertController *success = [UIAlertController alertControllerWithTitle:@"✅" message:@"تم التحقق بنجاح" preferredStyle:UIAlertControllerStyleAlert];
                 [root presentViewController:success animated:YES completion:nil];
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
                     [success dismissViewControllerAnimated:YES completion:nil];
                 });
             } else {
-                // الكود خطأ، نعيد القفل فوراً
-                showPinLock();
+                // إذا الكود غلط، تظهر الرسالة مرة أخرى
+                showLock();
             }
         }];
-        
-        [alert addAction:checkAction];
+
+        [alert addAction:login];
         [root presentViewController:alert animated:YES completion:nil];
     });
 }
 
 %ctor {
-    showPinLock();
+    showLock();
 }
