@@ -1,56 +1,107 @@
 #import <UIKit/UIKit.h>
 
-void showLock() {
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        UIWindow *window = nil;
-        
-        // طريقة الحصول على النافذة في الإصدارات الحديثة (iOS 13+)
-        if (@available(iOS 13.0, *)) {
-            for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
-                if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
-                    window = ((UIWindowScene *)scene).windows.firstObject;
-                    break;
-                }
-            }
-        }
-        
-        if (!window) {
-            window = [UIApplication sharedApplication].windows.firstObject;
-        }
+// نموذج لبيانات الزر
+@interface CustomButtonModel : NSObject
+@property (nonatomic, strong) NSString *name;
+@property (nonatomic, strong) NSString *type; // "رابط" أو "نص"
+@property (nonatomic, strong) NSString *content;
+@end
+@implementation CustomButtonModel
+@end
 
-        UIViewController *root = window.rootViewController;
-        if (!root) return;
+@interface HassanyDashboard : UIViewController <UITableViewDelegate, UITableViewDataSource>
+@property (nonatomic, strong) UITableView *tableView;
+@property (nonatomic, strong) NSMutableArray<CustomButtonModel *> *userButtons;
+@end
 
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"نظام الحماية"
-                                                                       message:@"ادخل الكود للاستمرار"
-                                                                preferredStyle:UIAlertControllerStyleAlert];
+@implementation HassanyDashboard
 
-        [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-            textField.placeholder = @"ادخل الكود هنا...";
-            textField.autocapitalizationType = UITextAutocapitalizationTypeAllCharacters;
-        }];
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor systemBackgroundColor];
+    self.title = @"لوحة تحكم الحساني";
+    self.userButtons = [[NSMutableArray alloc] init];
 
-        UIAlertAction *login = [UIAlertAction actionWithTitle:@"دخول" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-            NSString *input = alert.textFields.firstObject.text;
-            
-            if ([input isEqualToString:@"HU"]) {
-                // إذا الكود صح
-                UIAlertController *success = [UIAlertController alertControllerWithTitle:@"✅" message:@"تم التحقق بنجاح" preferredStyle:UIAlertControllerStyleAlert];
-                [root presentViewController:success animated:YES completion:nil];
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                    [success dismissViewControllerAnimated:YES completion:nil];
-                });
-            } else {
-                // إذا الكود غلط، تظهر الرسالة مرة أخرى
-                showLock();
-            }
-        }];
+    // إعداد الجدول (مثل تصميم الإعدادات في الآيفون)
+    self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleInsetGrouped];
+    self.tableView.delegate = self;
+    self.tableView.dataSource = self;
+    [self.view addSubview:self.tableView];
 
-        [alert addAction:login];
-        [root presentViewController:alert animated:YES completion:nil];
+    // إضافة زر "+" فوق (Navigation Bar)
+    UIBarButtonItem *addButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addNewButton)];
+    self.navigationItem.rightBarButtonItem = addButton;
+}
+
+// دالة إضافة زر جديد (نظام الإدخال)
+- (void)addNewButton {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"زر جديد" message:@"أدخل تفاصيل الزر" preferredStyle:UIAlertControllerStyleAlert];
+    
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"اسم الزر"; }];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"النوع (رابط أو نص)"; }];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"المحتوى"; }];
+
+    [alert addAction:[UIAlertAction actionWithTitle:@"إضافة" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        CustomButtonModel *newBtn = [[CustomButtonModel alloc] init];
+        newBtn.name = alert.textFields[0].text;
+        newBtn.type = alert.textFields[1].text;
+        newBtn.content = alert.textFields[2].text;
+        [self.userButtons addObject:newBtn];
+        [self.tableView reloadData];
+    }]];
+    
+    [alert addAction:[UIAlertAction actionWithTitle:@"إلغاء" style:UIAlertActionStyleCancel bundle:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+// إعدادات الجدول
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section { return self.userButtons.count; }
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cell"] ?: [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"cell"];
+    CustomButtonModel *model = self.userButtons[indexPath.row];
+    cell.textLabel.text = model.name;
+    cell.detailTextLabel.text = [NSString stringWithFormat:@"النوع: %@", model.type];
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    return cell;
+}
+
+// عند الضغط على الزر المضاف
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    CustomButtonModel *model = self.userButtons[indexPath.row];
+    
+    if ([model.type containsString:@"رابط"]) {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:model.content] options:@{} completionHandler:nil];
+    } else {
+        UIAlertController *show = [UIAlertController alertControllerWithTitle:model.name message:model.content preferredStyle:UIAlertControllerStyleAlert];
+        [show addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleDefault handler:nil]];
+        [self presentViewController:show animated:YES completion:nil];
+    }
+}
+@end
+
+// كود الحقن في اللعبة
+%hook UIViewController
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        UIButton *mainBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+        mainBtn.frame = CGRectMake(20, 50, 50, 50);
+        [mainBtn setTitle:@"H" forState:UIControlStateNormal];
+        mainBtn.backgroundColor = [UIColor systemBlueColor];
+        mainBtn.tintColor = [UIColor whiteColor];
+        mainBtn.layer.cornerRadius = 25;
+        [mainBtn addTarget:self action:@selector(openHassanyMenu) forControlEvents:UIControlEventTouchUpInside];
+        [[UIApplication sharedApplication].keyWindow addSubview:mainBtn];
     });
 }
 
-%ctor {
-    showLock();
+%new
+- (void)openHassanyMenu {
+    HassanyDashboard *vc = [[HassanyDashboard alloc] init];
+    UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:vc];
+    [self presentViewController:nav animated:YES completion:nil];
 }
+%end
