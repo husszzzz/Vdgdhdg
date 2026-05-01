@@ -3,7 +3,7 @@
 // نموذج لبيانات الزر
 @interface CustomButtonModel : NSObject
 @property (nonatomic, strong) NSString *name;
-@property (nonatomic, strong) NSString *type; // "رابط" أو "نص"
+@property (nonatomic, strong) NSString *type; 
 @property (nonatomic, strong) NSString *content;
 @end
 @implementation CustomButtonModel
@@ -22,18 +22,15 @@
     self.title = @"لوحة تحكم الحساني";
     self.userButtons = [[NSMutableArray alloc] init];
 
-    // إعداد الجدول (مثل تصميم الإعدادات في الآيفون)
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleInsetGrouped];
     self.tableView.delegate = self;
     self.tableView.dataSource = self;
     [self.view addSubview:self.tableView];
 
-    // إضافة زر "+" فوق (Navigation Bar)
     UIBarButtonItem *addButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addNewButton)];
     self.navigationItem.rightBarButtonItem = addButton;
 }
 
-// دالة إضافة زر جديد (نظام الإدخال)
 - (void)addNewButton {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"زر جديد" message:@"أدخل تفاصيل الزر" preferredStyle:UIAlertControllerStyleAlert];
     
@@ -43,18 +40,19 @@
 
     [alert addAction:[UIAlertAction actionWithTitle:@"إضافة" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         CustomButtonModel *newBtn = [[CustomButtonModel alloc] init];
-        newBtn.name = alert.textFields[0].text;
-        newBtn.type = alert.textFields[1].text;
-        newBtn.content = alert.textFields[2].text;
+        newBtn.name = alert.textFields[0].text ?: @"بدون اسم";
+        newBtn.type = alert.textFields[1].text ?: @"نص";
+        newBtn.content = alert.textFields[2].text ?: @"";
         [self.userButtons addObject:newBtn];
         [self.tableView reloadData];
     }]];
     
-    [alert addAction:[UIAlertAction actionWithTitle:@"إلغاء" style:UIAlertActionStyleCancel bundle:nil]];
+    // تصحيح الخطأ هنا: حذف bundle:nil
+    [alert addAction:[UIAlertAction actionWithTitle:@"إلغاء" style:UIAlertActionStyleCancel handler:nil]];
+    
     [self presentViewController:alert animated:YES completion:nil];
 }
 
-// إعدادات الجدول
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section { return self.userButtons.count; }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -62,11 +60,9 @@
     CustomButtonModel *model = self.userButtons[indexPath.row];
     cell.textLabel.text = model.name;
     cell.detailTextLabel.text = [NSString stringWithFormat:@"النوع: %@", model.type];
-    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     return cell;
 }
 
-// عند الضغط على الزر المضاف
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     CustomButtonModel *model = self.userButtons[indexPath.row];
@@ -81,20 +77,31 @@
 }
 @end
 
-// كود الحقن في اللعبة
 %hook UIViewController
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         UIButton *mainBtn = [UIButton buttonWithType:UIButtonTypeSystem];
-        mainBtn.frame = CGRectMake(20, 50, 50, 50);
+        mainBtn.frame = CGRectMake(20, 100, 60, 60);
         [mainBtn setTitle:@"H" forState:UIControlStateNormal];
         mainBtn.backgroundColor = [UIColor systemBlueColor];
         mainBtn.tintColor = [UIColor whiteColor];
-        mainBtn.layer.cornerRadius = 25;
+        mainBtn.layer.cornerRadius = 30;
         [mainBtn addTarget:self action:@selector(openHassanyMenu) forControlEvents:UIControlEventTouchUpInside];
-        [[UIApplication sharedApplication].keyWindow addSubview:mainBtn];
+        
+        // تصحيح مشكلة keyWindow لتعمل على iOS 13+ و iOS 18
+        UIWindow *window = nil;
+        if (@available(iOS 13.0, *)) {
+            for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+                if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
+                    window = ((UIWindowScene *)scene).windows.firstObject;
+                    break;
+                }
+            }
+        }
+        if (!window) window = [UIApplication sharedApplication].windows.firstObject;
+        [window addSubview:mainBtn];
     });
 }
 
