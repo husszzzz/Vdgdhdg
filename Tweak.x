@@ -1,6 +1,6 @@
 #import <UIKit/UIKit.h>
 
-@interface CustomButtonModel : NSObject <NSCoding>
+@interface CustomButtonModel : NSObject <NSSecureCoding>
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) NSString *type; 
 @property (nonatomic, strong) NSString *content;
@@ -8,6 +8,8 @@
 @end
 
 @implementation CustomButtonModel
++ (BOOL)supportsSecureCoding { return YES; }
+
 - (void)encodeWithCoder:(NSCoder *)encoder {
     [encoder encodeObject:self.name forKey:@"name"];
     [encoder encodeObject:self.type forKey:@"type"];
@@ -16,10 +18,10 @@
 }
 - (id)initWithCoder:(NSCoder *)decoder {
     if ((self = [super init])) {
-        self.name = [decoder decodeObjectForKey:@"name"];
-        self.type = [decoder decodeObjectForKey:@"type"];
-        self.content = [decoder decodeObjectForKey:@"content"];
-        self.tagColor = [decoder decodeObjectForKey:@"tagColor"];
+        self.name = [decoder decodeObjectOfClass:[NSString class] forKey:@"name"];
+        self.type = [decoder decodeObjectOfClass:[NSString class] forKey:@"type"];
+        self.content = [decoder decodeObjectOfClass:[NSString class] forKey:@"content"];
+        self.tagColor = [decoder decodeObjectOfClass:[UIColor class] forKey:@"tagColor"];
     }
     return self;
 }
@@ -35,7 +37,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor systemBackgroundColor];
-    self.title = @"لوحة تحكم الحساني";
+    self.title = @"لوحة تحكم الحسني"; // تم تغيير الاسم هنا
     [self loadData];
 
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleInsetGrouped];
@@ -48,16 +50,22 @@
 }
 
 - (void)saveData {
-    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self.userButtons requiringSecureCoding:NO error:nil];
-    [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"HassanyButtons"];
-    [[NSUserDefaults standardUserDefaults] synchronize];
+    NSError *error = nil;
+    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self.userButtons requiringSecureCoding:YES error:&error];
+    if (data) {
+        [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"HassanyButtons"];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+    }
 }
 
 - (void)loadData {
     NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"HassanyButtons"];
     if (data) {
-        self.userButtons = [NSKeyedUnarchiver unarchiveObjectWithData:data];
-    } else {
+        NSError *error = nil;
+        NSSet *classes = [NSSet setWithArray:@[[NSMutableArray class], [CustomButtonModel class], [NSString class], [UIColor class]]];
+        self.userButtons = [NSKeyedUnarchiver unarchivedObjectOfClasses:classes fromData:data error:&error];
+    }
+    if (!self.userButtons) {
         self.userButtons = [[NSMutableArray alloc] init];
     }
 }
@@ -75,10 +83,9 @@
     [input addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"اسم الزر"; }];
     [input addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"المحتوى"; }];
 
-    // إضافة خيار اختيار اللون (الوسم)
-    [input addAction:[UIAlertAction actionWithTitle:@"حفظ (أحمر)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { [self finalizeButton:input type:type color:[UIColor redColor]]; }]];
-    [input addAction:[UIAlertAction actionWithTitle:@"حفظ (أخضر)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { [self finalizeButton:input type:type color:[UIColor greenColor]]; }]];
-    [input addAction:[UIAlertAction actionWithTitle:@"حفظ (أزرق)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { [self finalizeButton:input type:type color:[UIColor blueColor]]; }]];
+    [input addAction:[UIAlertAction actionWithTitle:@"حفظ (أحمر)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { [self finalizeButton:input type:type color:[UIColor systemRedColor]]; }]];
+    [input addAction:[UIAlertAction actionWithTitle:@"حفظ (أخضر)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { [self finalizeButton:input type:type color:[UIColor systemGreenColor]]; }]];
+    [input addAction:[UIAlertAction actionWithTitle:@"حفظ (أزرق)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { [self finalizeButton:input type:type color:[UIColor systemBlueColor]]; }]];
 
     [self presentViewController:input animated:YES completion:nil];
 }
@@ -102,7 +109,6 @@
     cell.textLabel.text = model.name;
     cell.detailTextLabel.text = model.type;
     
-    // رسم النقطة الملونة (الوسم)
     UIView *dot = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 10, 10)];
     dot.backgroundColor = model.tagColor;
     dot.layer.cornerRadius = 5;
@@ -137,7 +143,6 @@
         btn.layer.cornerRadius = 25;
         [btn addTarget:self action:@selector(openHassany) forControlEvents:UIControlEventTouchUpInside];
         
-        // الحل النهائي لـ keyWindow المتوافق مع iOS 13-18
         UIWindow *window = nil;
         if (@available(iOS 13.0, *)) {
             for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
