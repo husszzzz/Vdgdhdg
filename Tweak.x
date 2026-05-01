@@ -9,27 +9,26 @@
 
 @implementation CustomButtonModel
 + (BOOL)supportsSecureCoding { return YES; }
-
-- (void)encodeWithCoder:(NSCoder *)encoder {
-    [encoder encodeObject:self.name forKey:@"name"];
-    [encoder encodeObject:self.type forKey:@"type"];
-    [encoder encodeObject:self.content forKey:@"content"];
-    [encoder encodeObject:self.tagColor forKey:@"tagColor"];
+- (void)encodeWithCoder:(NSCoder *)a {
+    [a encodeObject:self.name forKey:@"name"]; [a encodeObject:self.type forKey:@"type"];
+    [a encodeObject:self.content forKey:@"content"]; [a encodeObject:self.tagColor forKey:@"tagColor"];
 }
-- (id)initWithCoder:(NSCoder *)decoder {
+- (id)initWithCoder:(NSCoder *)a {
     if ((self = [super init])) {
-        self.name = [decoder decodeObjectOfClass:[NSString class] forKey:@"name"];
-        self.type = [decoder decodeObjectOfClass:[NSString class] forKey:@"type"];
-        self.content = [decoder decodeObjectOfClass:[NSString class] forKey:@"content"];
-        self.tagColor = [decoder decodeObjectOfClass:[UIColor class] forKey:@"tagColor"];
+        self.name = [a decodeObjectOfClass:[NSString class] forKey:@"name"];
+        self.type = [a decodeObjectOfClass:[NSString class] forKey:@"type"];
+        self.content = [a decodeObjectOfClass:[NSString class] forKey:@"content"];
+        self.tagColor = [a decodeObjectOfClass:[UIColor class] forKey:@"tagColor"];
     }
     return self;
 }
 @end
 
-@interface HassanyDashboard : UIViewController <UITableViewDelegate, UITableViewDataSource>
+@interface HassanyDashboard : UIViewController <UITableViewDelegate, UITableViewDataSource, UISearchResultsUpdating>
 @property (nonatomic, strong) UITableView *tableView;
 @property (nonatomic, strong) NSMutableArray<CustomButtonModel *> *userButtons;
+@property (nonatomic, strong) NSMutableArray<CustomButtonModel *> *filteredButtons;
+@property (nonatomic, strong) UISearchController *searchController;
 @end
 
 @implementation HassanyDashboard
@@ -37,99 +36,142 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor systemBackgroundColor];
-    self.title = @"لوحة تحكم الحسني"; // تم تغيير الاسم هنا
+    self.title = @"لوحة تحكم الحسني";
     [self loadData];
+
+    // إعداد البحث
+    self.searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
+    self.searchController.searchResultsUpdater = self;
+    self.searchController.obscuresBackgroundDuringPresentation = NO;
+    self.searchController.searchBar.placeholder = @"بحث عن زر...";
+    self.navigationItem.searchController = self.searchController;
 
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleInsetGrouped];
     self.tableView.delegate = self;
     self.tableView.dataSource = self;
     [self.view addSubview:self.tableView];
 
+    // أزرار الشريط العلوي
     UIBarButtonItem *addButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addNewButton)];
     self.navigationItem.rightBarButtonItem = addButton;
+
+    // زر التواصل في الأسفل
+    UIButton *contactBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+    contactBtn.frame = CGRectMake(0, 0, self.view.frame.size.width, 50);
+    [contactBtn setTitle:@"تواصل معنا عبر تلجرام 🚀" forState:UIControlStateNormal];
+    [contactBtn addTarget:self action:@selector(openTelegram) forControlEvents:UIControlEventTouchUpInside];
+    self.tableView.tableFooterView = contactBtn;
+}
+
+- (void)openTelegram {
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/OM_G9"] options:@{} completionHandler:nil];
+}
+
+- (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
+    NSString *text = searchController.searchBar.text;
+    if (text.length > 0) {
+        NSPredicate *pred = [NSPredicate predicateWithFormat:@"name CONTAINS[cd] %@", text];
+        self.filteredButtons = [[self.userButtons filteredArrayUsingPredicate:pred] mutableCopy];
+    } else {
+        self.filteredButtons = [self.userButtons mutableCopy];
+    }
+    [self.tableView reloadData];
 }
 
 - (void)saveData {
-    NSError *error = nil;
-    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self.userButtons requiringSecureCoding:YES error:&error];
-    if (data) {
-        [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"HassanyButtons"];
-        [[NSUserDefaults standardUserDefaults] synchronize];
-    }
+    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self.userButtons requiringSecureCoding:YES error:nil];
+    [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"HassanyButtons"];
+    [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 - (void)loadData {
     NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"HassanyButtons"];
     if (data) {
-        NSError *error = nil;
         NSSet *classes = [NSSet setWithArray:@[[NSMutableArray class], [CustomButtonModel class], [NSString class], [UIColor class]]];
-        self.userButtons = [NSKeyedUnarchiver unarchivedObjectOfClasses:classes fromData:data error:&error];
+        self.userButtons = [NSKeyedUnarchiver unarchivedObjectOfClasses:classes fromData:data error:nil];
     }
-    if (!self.userButtons) {
-        self.userButtons = [[NSMutableArray alloc] init];
-    }
+    self.userButtons = self.userButtons ?: [[NSMutableArray alloc] init];
+    self.filteredButtons = [self.userButtons mutableCopy];
 }
 
 - (void)addNewButton {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"نوع الزر" message:@"اختر النوع" preferredStyle:UIAlertControllerStyleActionSheet];
-    [alert addAction:[UIAlertAction actionWithTitle:@"رابط" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { [self showInputForType:@"رابط"]; }]];
-    [alert addAction:[UIAlertAction actionWithTitle:@"نص" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { [self showInputForType:@"نص"]; }]];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"نوع الزر" message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+    [alert addAction:[UIAlertAction actionWithTitle:@"رابط" style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) { [self showInputForType:@"رابط" model:nil]; }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"نص" style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) { [self showInputForType:@"نص" model:nil]; }]];
     [alert addAction:[UIAlertAction actionWithTitle:@"إلغاء" style:UIAlertActionStyleCancel handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 
-- (void)showInputForType:(NSString *)type {
-    UIAlertController *input = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:@"زر %@ جديد", type] message:nil preferredStyle:UIAlertControllerStyleAlert];
-    [input addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"اسم الزر"; }];
-    [input addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"المحتوى"; }];
+- (void)showInputForType:(NSString *)type model:(CustomButtonModel *)model {
+    BOOL isEdit = (model != nil);
+    UIAlertController *input = [UIAlertController alertControllerWithTitle:isEdit ? @"تعديل" : @"إضافة" message:nil preferredStyle:UIAlertControllerStyleAlert];
+    [input addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"اسم الزر"; t.text = model.name; }];
+    [input addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"المحتوى"; t.text = model.content; }];
 
-    [input addAction:[UIAlertAction actionWithTitle:@"حفظ (أحمر)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { [self finalizeButton:input type:type color:[UIColor systemRedColor]]; }]];
-    [input addAction:[UIAlertAction actionWithTitle:@"حفظ (أخضر)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { [self finalizeButton:input type:type color:[UIColor systemGreenColor]]; }]];
-    [input addAction:[UIAlertAction actionWithTitle:@"حفظ (أزرق)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) { [self finalizeButton:input type:type color:[UIColor systemBlueColor]]; }]];
+    void (^handler)(UIColor *) = ^(UIColor *c) {
+        CustomButtonModel *btn = isEdit ? model : [[CustomButtonModel alloc] init];
+        btn.name = input.textFields[0].text;
+        btn.content = input.textFields[1].text;
+        btn.type = type ?: model.type;
+        btn.tagColor = c ?: model.tagColor;
+        if (!isEdit) [self.userButtons addObject:btn];
+        [self saveData]; [self loadData]; [self.tableView reloadData];
+    };
 
+    [input addAction:[UIAlertAction actionWithTitle:@"حفظ (أزرق)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) { handler([UIColor systemBlueColor]); }]];
+    [input addAction:[UIAlertAction actionWithTitle:@"حفظ (أحمر)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) { handler([UIColor systemRedColor]); }]];
+    [input addAction:[UIAlertAction actionWithTitle:@"إلغاء" style:UIAlertActionStyleCancel handler:nil]];
     [self presentViewController:input animated:YES completion:nil];
 }
 
-- (void)finalizeButton:(UIAlertController *)input type:(NSString *)type color:(UIColor *)color {
-    CustomButtonModel *btn = [[CustomButtonModel alloc] init];
-    btn.name = input.textFields[0].text ?: @"بدون اسم";
-    btn.content = input.textFields[1].text ?: @"";
-    btn.type = type;
-    btn.tagColor = color;
-    [self.userButtons addObject:btn];
-    [self saveData];
-    [self.tableView reloadData];
-}
-
-- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section { return self.userButtons.count; }
-
-- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cell"] ?: [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"cell"];
-    CustomButtonModel *model = self.userButtons[indexPath.row];
-    cell.textLabel.text = model.name;
-    cell.detailTextLabel.text = model.type;
-    
-    UIView *dot = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 10, 10)];
-    dot.backgroundColor = model.tagColor;
-    dot.layer.cornerRadius = 5;
-    cell.accessoryView = dot;
-    
-    return cell;
-}
-
+// قائمة الخيارات عند الضغط المطول أو العادي
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    CustomButtonModel *model = self.userButtons[indexPath.row];
-    if ([model.type isEqualToString:@"رابط"]) {
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:model.content] options:@{} completionHandler:nil];
-    } else {
-        UIAlertController *msg = [UIAlertController alertControllerWithTitle:model.name message:model.content preferredStyle:UIAlertControllerStyleAlert];
-        [msg addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleDefault handler:nil]];
-        [self presentViewController:msg animated:YES completion:nil];
-    }
+    CustomButtonModel *model = self.filteredButtons[indexPath.row];
+    
+    UIAlertController *menu = [UIAlertController alertControllerWithTitle:model.name message:@"اختر إجراءً" preferredStyle:UIAlertControllerStyleActionSheet];
+    
+    [menu addAction:[UIAlertAction actionWithTitle:@"تشغيل/فتح" style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
+        if ([model.type isEqualToString:@"رابط"]) [[UIApplication sharedApplication] openURL:[NSURL URLWithString:model.content] options:@{} completionHandler:nil];
+        else {
+            UIAlertController *msg = [UIAlertController alertControllerWithTitle:model.name message:model.content preferredStyle:UIAlertControllerStyleAlert];
+            [msg addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleDefault handler:nil]];
+            [self presentViewController:msg animated:YES completion:nil];
+        }
+    }]];
+    
+    [menu addAction:[UIAlertAction actionWithTitle:@"نسخ المحتوى" style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
+        [UIPasteboard generalPasteboard].string = model.content;
+    }]];
+    
+    [menu addAction:[UIAlertAction actionWithTitle:@"تعديل" style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
+        [self showInputForType:nil model:model];
+    }]];
+    
+    [menu addAction:[UIAlertAction actionWithTitle:@"حذف" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *a) {
+        [self.userButtons removeObject:model];
+        [self saveData]; [self loadData]; [self.tableView reloadData];
+    }]];
+    
+    [menu addAction:[UIAlertAction actionWithTitle:@"إلغاء" style:UIAlertActionStyleCancel handler:nil]];
+    [self presentViewController:menu animated:YES completion:nil];
+}
+
+- (NSInteger)tableView:(UITableView *)t numberOfRowsInSection:(NSInteger)s { return self.filteredButtons.count; }
+- (UITableViewCell *)tableView:(UITableView *)t cellForRowAtIndexPath:(NSIndexPath *)i {
+    UITableViewCell *c = [t dequeueReusableCellWithIdentifier:@"c"] ?: [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"c"];
+    CustomButtonModel *m = self.filteredButtons[i.row];
+    c.textLabel.text = m.name;
+    c.detailTextLabel.text = m.type;
+    UIView *dot = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 10, 10)];
+    dot.backgroundColor = m.tagColor;
+    dot.layer.cornerRadius = 5;
+    c.accessoryView = dot;
+    return c;
 }
 @end
 
+// كود الزر العائم (نفس السابق)
 %hook UIViewController
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
@@ -142,13 +184,11 @@
         btn.tintColor = [UIColor whiteColor];
         btn.layer.cornerRadius = 25;
         [btn addTarget:self action:@selector(openHassany) forControlEvents:UIControlEventTouchUpInside];
-        
         UIWindow *window = nil;
         if (@available(iOS 13.0, *)) {
             for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
                 if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
-                    window = ((UIWindowScene *)scene).windows.firstObject;
-                    break;
+                    window = ((UIWindowScene *)scene).windows.firstObject; break;
                 }
             }
         }
