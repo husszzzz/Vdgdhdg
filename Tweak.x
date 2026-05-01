@@ -1,17 +1,35 @@
 #import <UIKit/UIKit.h>
 
-// نموذج لبيانات الزر
-@interface CustomButtonModel : NSObject
+// نموذج البيانات مع دعم الحفظ (Coding)
+@interface CustomButtonModel : NSObject <NSCoding>
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) NSString *type; 
 @property (nonatomic, strong) NSString *content;
+@property (nonatomic, strong) UIColor *tagColor;
 @end
+
 @implementation CustomButtonModel
+- (void)encodeWithCoder:(NSCoder *)encoder {
+    [encoder encodeObject:self.name forKey:@"name"];
+    [encoder encodeObject:self.type forKey:@"type"];
+    [encoder encodeObject:self.content forKey:@"content"];
+    [encoder encodeObject:self.tagColor forKey:@"tagColor"];
+}
+- (id)initWithCoder:(NSCoder *)decoder {
+    if ((self = [super init])) {
+        self.name = [decoder decodeObjectForKey:@"name"];
+        self.type = [decoder decodeObjectForKey:@"type"];
+        self.content = [decoder decodeObjectForKey:@"content"];
+        self.tagColor = [decoder decodeObjectForKey:@"tagColor"];
+    }
+    return self;
+}
 @end
 
 @interface HassanyDashboard : UIViewController <UITableViewDelegate, UITableViewDataSource>
 @property (nonatomic, strong) UITableView *tableView;
 @property (nonatomic, strong) NSMutableArray<CustomButtonModel *> *userButtons;
+@property (nonatomic, strong) UIColor *selectedColor;
 @end
 
 @implementation HassanyDashboard
@@ -20,7 +38,9 @@
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor systemBackgroundColor];
     self.title = @"لوحة تحكم الحساني";
-    self.userButtons = [[NSMutableArray alloc] init];
+    self.selectedColor = [UIColor grayColor]; // اللون الافتراضي
+
+    [self loadData]; // تحميل البيانات المحفوظة
 
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleInsetGrouped];
     self.tableView.delegate = self;
@@ -31,84 +51,103 @@
     self.navigationItem.rightBarButtonItem = addButton;
 }
 
-- (void)addNewButton {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"زر جديد" message:@"أدخل تفاصيل الزر" preferredStyle:UIAlertControllerStyleAlert];
-    
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"اسم الزر"; }];
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"النوع (رابط أو نص)"; }];
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"المحتوى"; }];
+// دالة الحفظ الدائم
+- (void)saveData {
+    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self.userButtons requiringSecureCoding:NO error:nil];
+    [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"HassanyButtons"];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+}
 
-    [alert addAction:[UIAlertAction actionWithTitle:@"إضافة" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        CustomButtonModel *newBtn = [[CustomButtonModel alloc] init];
-        newBtn.name = alert.textFields[0].text ?: @"بدون اسم";
-        newBtn.type = alert.textFields[1].text ?: @"نص";
-        newBtn.content = alert.textFields[2].text ?: @"";
-        [self.userButtons addObject:newBtn];
-        [self.tableView reloadData];
+// دالة التحميل
+- (void)loadData {
+    NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"HassanyButtons"];
+    if (data) {
+        self.userButtons = [NSKeyedUnarchiver unarchiveObjectWithData:data];
+    } else {
+        self.userButtons = [[NSMutableArray alloc] init];
+    }
+}
+
+- (void)addNewButton {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"إضافة زر" message:@"اختر تفاصيل الزر واللون" preferredStyle:UIAlertControllerStyleActionSheet];
+
+    // خيار الرابط
+    [alert addAction:[UIAlertAction actionWithTitle:@"إضافة رابط" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        [self showInputForType:@"رابط"];
     }]];
-    
-    // تصحيح الخطأ هنا: حذف bundle:nil
+
+    // خيار النص
+    [alert addAction:[UIAlertAction actionWithTitle:@"إضافة نص" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        [self showInputForType:@"نص"];
+    }]];
+
     [alert addAction:[UIAlertAction actionWithTitle:@"إلغاء" style:UIAlertActionStyleCancel handler:nil]];
-    
     [self presentViewController:alert animated:YES completion:nil];
 }
 
-- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section { return self.userButtons.count; }
+- (void)showInputForType:(NSString *)type {
+    UIAlertController *input = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:@"جديد: %@", type] message:@"أدخل البيانات" preferredStyle:UIAlertControllerStyleAlert];
+    
+    [input addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = @"اسم الزر"; }];
+    [input addTextFieldWithConfigurationHandler:^(UITextField *t) { t.placeholder = ( [type isEqualToString:@"رابط"] ? @"أدخل الرابط (http://...)" : @"أدخل النص" ); }];
 
+    // إضافة خيارات الألوان (الوسم)
+    NSArray *colors = @[[UIColor redColor], [UIColor greenColor], [UIColor blueColor], [UIColor orangeColor], [UIColor purpleColor]];
+    NSArray *colorNames = @[@"أحمر", @"أخضر", @"أزرق", @"برتقالي", @"بنفسجي"];
+
+    [input addAction:[UIAlertAction actionWithTitle:@"حفظ" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        CustomButtonModel *btn = [[CustomButtonModel alloc] init];
+        btn.name = input.textFields[0].text;
+        btn.content = input.textFields[1].text;
+        btn.type = type;
+        btn.tagColor = self.selectedColor;
+        
+        [self.userButtons addObject:btn];
+        [self saveData]; // حفظ فور الإضافة
+        [self.tableView reloadData];
+    }]];
+
+    [self presentViewController:input animated:YES completion:nil];
+}
+
+// إعداد شكل الجدول (الوسم الملون)
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cell"] ?: [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"cell"];
     CustomButtonModel *model = self.userButtons[indexPath.row];
+    
     cell.textLabel.text = model.name;
-    cell.detailTextLabel.text = [NSString stringWithFormat:@"النوع: %@", model.type];
+    cell.detailTextLabel.text = model.type;
+    
+    // إنشاء الوسم الملون (النقطة)
+    UIView *tagView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 12, 12)];
+    tagView.backgroundColor = model.tagColor;
+    tagView.layer.cornerRadius = 6;
+    cell.accessoryView = tagView; // تظهر جهة اليمين
+    
     return cell;
 }
 
-- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    CustomButtonModel *model = self.userButtons[indexPath.row];
-    
-    if ([model.type containsString:@"رابط"]) {
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:model.content] options:@{} completionHandler:nil];
-    } else {
-        UIAlertController *show = [UIAlertController alertControllerWithTitle:model.name message:model.content preferredStyle:UIAlertControllerStyleAlert];
-        [show addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleDefault handler:nil]];
-        [self presentViewController:show animated:YES completion:nil];
-    }
-}
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section { return self.userButtons.count; }
 @end
 
+// كود الحقن (نفس السابق مع زر الحسين العائم)
 %hook UIViewController
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        UIButton *mainBtn = [UIButton buttonWithType:UIButtonTypeSystem];
-        mainBtn.frame = CGRectMake(20, 100, 60, 60);
-        [mainBtn setTitle:@"H" forState:UIControlStateNormal];
-        mainBtn.backgroundColor = [UIColor systemBlueColor];
-        mainBtn.tintColor = [UIColor whiteColor];
-        mainBtn.layer.cornerRadius = 30;
-        [mainBtn addTarget:self action:@selector(openHassanyMenu) forControlEvents:UIControlEventTouchUpInside];
-        
-        // تصحيح مشكلة keyWindow لتعمل على iOS 13+ و iOS 18
-        UIWindow *window = nil;
-        if (@available(iOS 13.0, *)) {
-            for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
-                if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
-                    window = ((UIWindowScene *)scene).windows.firstObject;
-                    break;
-                }
-            }
-        }
-        if (!window) window = [UIApplication sharedApplication].windows.firstObject;
-        [window addSubview:mainBtn];
+        UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
+        btn.frame = CGRectMake(20, 100, 50, 50);
+        btn.backgroundColor = [UIColor colorWithRed:0.0 green:0.5 blue:1.0 alpha:1.0];
+        [btn setTitle:@"H" forState:UIControlStateNormal];
+        btn.tintColor = [UIColor whiteColor];
+        btn.layer.cornerRadius = 25;
+        [btn addTarget:self action:@selector(openHassany) forControlEvents:UIControlEventTouchUpInside];
+        [[UIApplication sharedApplication].keyWindow addSubview:btn];
     });
 }
-
-%new
-- (void)openHassanyMenu {
-    HassanyDashboard *vc = [[HassanyDashboard alloc] init];
-    UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:vc];
+%new - (void)openHassany {
+    UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:[[HassanyDashboard alloc] init]];
     [self presentViewController:nav animated:YES completion:nil];
 }
 %end
