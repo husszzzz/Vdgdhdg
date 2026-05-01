@@ -1,24 +1,31 @@
-name: Build_Tweak
-on: [push, workflow_dispatch]
+name: Build_SmartButtons
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Setup Dependencies (ldid)
+      - name: Setup Dependencies
         run: |
           brew install ldid
 
       - name: Setup Theos & SDKs
         run: |
-          # مسح أي مخلفات قديمة لضمان عدم حدوث تضارب
+          # تنظيف شامل للمسارات قبل البدء
           rm -rf ~/theos
-          # تحميل Theos
+          # تحميل Theos الأساسي
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          # تحميل SDKs بشكل منفصل ومنظم
+          # مسح مجلد sdks الفارغ الذي ينشئه Theos تلقائياً لتجنب الخطأ 128
+          rm -rf ~/theos/sdks
+          # تحميل الـ SDKs في المجلد المخصص لها
           git clone --depth 1 https://github.com/theos/sdks.git ~/theos/sdks
-          # تعريف المسارات للسيرفر
           echo "THEOS=~/theos" >> $GITHUB_ENV
 
       - name: Build Tweak
@@ -29,5 +36,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Tweak-Package
+          name: SmartButtons-Package
           path: packages/*.deb
