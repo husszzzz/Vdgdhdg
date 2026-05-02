@@ -1,58 +1,70 @@
 #import <UIKit/UIKit.h>
 
-// تعريف المتغيرات
 static UILabel *hassanyLabel;
 static NSTimer *colorTimer;
+static NSTimer *retryTimer;
 
 @interface HassanyOverlay : NSObject
-+ (void)showOverlay;
++ (void)startHassany;
++ (void)tryToInject;
 + (void)changeColor;
 @end
 
 @implementation HassanyOverlay
 
-+ (void)showOverlay {
++ (void)startHassany {
+    // البدء بمحاولة الحقن كل ثانية حتى تظهر الواجهة
+    if (!retryTimer) {
+        retryTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 
+                                                      target:self 
+                                                    selector:@selector(tryToInject) 
+                                                    userInfo:nil 
+                                                     repeats:YES];
+    }
+}
+
++ (void)tryToInject {
     dispatch_async(dispatch_get_main_queue(), ^{
-        
         UIWindow *activeWindow = nil;
-        
-        // استخدام الطريقة البرمجية الحديثة لتجنب الخطأ
+
+        // الطريقة الأكثر أماناً للوصول للنافذة النشطة
         if (@available(iOS 13.0, *)) {
             for (UIWindowScene* scene in [UIApplication sharedApplication].connectedScenes) {
                 if (scene.activationState == UISceneActivationStateForegroundActive) {
                     for (UIWindow *window in scene.windows) {
-                        // استخدام Selector لتجنب اكتشاف keyWindow من المترجم
-                        if ([window respondsToSelector:NSSelectorFromString(@"isKeyWindow")]) {
-                            if ([[window valueForKey:@"isKeyWindow"] boolValue]) {
-                                activeWindow = window;
-                                break;
-                            }
+                        if (window.isKeyWindow || window.windowLevel == UIWindowLevelNormal) {
+                            activeWindow = window;
+                            break;
                         }
                     }
                 }
             }
         }
 
-        // إذا فشلت الطريقة أعلاه، نستخدم الطريقة البديلة الآمنة
         if (!activeWindow) {
-            activeWindow = [[UIApplication sharedApplication] delegate].window;
+            activeWindow = [[UIApplication sharedApplication] keyWindow];
         }
 
-        // إنشاء النص
+        // إذا وجدت النافذة، نقوم بحقن النص وإيقاف مؤقت المحاولة
         if (activeWindow && !hassanyLabel) {
-            hassanyLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, activeWindow.frame.size.width, 20)];
+            [retryTimer invalidate];
+            retryTimer = nil;
+
+            hassanyLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, activeWindow.frame.size.width, 25)];
             hassanyLabel.text = @"hassany IPA";
-            hassanyLabel.font = [UIFont boldSystemFontOfSize:10];
+            hassanyLabel.font = [UIFont boldSystemFontOfSize:12];
             hassanyLabel.textAlignment = NSTextAlignmentCenter;
             hassanyLabel.backgroundColor = [UIColor clearColor];
             hassanyLabel.userInteractionEnabled = NO;
             
-            // وضع النص في أعلى الشاشة
-            hassanyLabel.center = CGPointMake(activeWindow.center.x, 15);
+            // وضعه في أعلى الشاشة (تأكد من رفعه ليكون ظاهراً)
+            hassanyLabel.center = CGPointMake(activeWindow.frame.size.width / 2, 20);
             
+            // إضافة النص فوق كل شيء
+            hassanyLabel.layer.zPosition = MAXFLOAT;
             [activeWindow addSubview:hassanyLabel];
-            
-            // مؤقت الألوان
+            [activeWindow bringSubviewToFront:hassanyLabel];
+
             colorTimer = [NSTimer scheduledTimerWithTimeInterval:0.5 
                                                           target:self 
                                                         selector:@selector(changeColor) 
@@ -75,14 +87,9 @@ static NSTimer *colorTimer;
 }
 @end
 
-// ==========================================
-// الحقن (Hook)
-// ==========================================
 %hook UIApplication
 - (void)applicationDidBecomeActive:(id)application {
     %orig;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [HassanyOverlay showOverlay];
-    });
+    [HassanyOverlay startHassany];
 }
 %end
