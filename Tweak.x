@@ -31,46 +31,49 @@ static NSTimer *retryTimer;
                 if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
                     UIWindowScene *windowScene = (UIWindowScene *)scene;
                     for (UIWindow *window in windowScene.windows) {
-                        // استخدام Selector للهروب من فحص المترجم
-                        SEL keySel = NSSelectorFromString(@"isKeyWindow");
-                        if ([window respondsToSelector:keySel]) {
-                            BOOL isKey = ((BOOL (*)(id, SEL))objc_msgSend)(window, keySel);
-                            if (isKey) {
+                        
+                        // استخدام KVC للهروب من المترجم تماماً
+                        // هذي الطريقة تجلب قيمة isKeyWindow بدون ما المترجم يحس
+                        @try {
+                            id isKey = [window valueForKey:@"isKeyWindow"];
+                            if ([isKey boolValue]) {
                                 activeWindow = window;
                                 break;
                             }
-                        }
+                        } @catch (NSException *exception) {}
                     }
                 }
             }
         }
 
-        // خطة بديلة (Fallback) إذا لم يجد النافذة بالطريقة السابقة
+        // إذا ما لقى النافذة بالطريقة اللي فوگ، يستخدم الـ Delegate
         if (!activeWindow) {
-            activeWindow = [[UIApplication sharedApplication] delegate].window;
+            @try {
+                activeWindow = [[UIApplication sharedApplication] delegate].window;
+            } @catch (NSException *exception) {}
         }
 
         if (activeWindow && !hassanyLabel) {
             [retryTimer invalidate];
             retryTimer = nil;
 
-            // إنشاء النص
+            // إعدادات النص (hassany IPA)
             hassanyLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, activeWindow.frame.size.width, 30)];
             hassanyLabel.text = @"hassany IPA";
-            hassanyLabel.font = [UIFont boldSystemFontOfSize:14]; // تكبير الخط شوي عشان يبين
+            hassanyLabel.font = [UIFont boldSystemFontOfSize:14];
             hassanyLabel.textAlignment = NSTextAlignmentCenter;
             hassanyLabel.backgroundColor = [UIColor clearColor];
             hassanyLabel.userInteractionEnabled = NO;
             
-            // تحديد الموقع (25 هو الارتفاع المناسب تحت النوتش)
+            // الموقع (تحت الساعة بـ 25 بكسل)
             hassanyLabel.center = CGPointMake(activeWindow.frame.size.width / 2, 25);
             
-            // رفعه فوق كل الطبقات
+            // نخليه فوق كل شي
             hassanyLabel.layer.zPosition = MAXFLOAT;
             [activeWindow addSubview:hassanyLabel];
             [activeWindow bringSubviewToFront:hassanyLabel];
 
-            // تشغيل مؤقت الألوان
+            // تشغيل مؤقت الألوان (كل 0.4 ثانية)
             colorTimer = [NSTimer scheduledTimerWithTimeInterval:0.4 
                                                           target:self 
                                                         selector:@selector(changeColor) 
