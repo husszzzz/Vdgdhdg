@@ -16,27 +16,29 @@ static NSTimer *colorTimer;
         
         UIWindow *activeWindow = nil;
         
-        // الطريقة الحديثة والآمنة للحصول على النافذة بدون استخدام keyWindow
+        // استخدام الطريقة البرمجية الحديثة لتجنب الخطأ
         if (@available(iOS 13.0, *)) {
-            NSSet *scenes = [[UIApplication sharedApplication] connectedScenes];
-            for (UIScene *scene in scenes) {
-                if ([scene isKindOfClass:[UIWindowScene class]] && scene.activationState == UISceneActivationStateForegroundActive) {
-                    UIWindowScene *windowScene = (UIWindowScene *)scene;
-                    // نأخذ أول نافذة صالحة في المشهد النشط
-                    for (UIWindow *window in windowScene.windows) {
-                        if (!window.hidden && window.isKeyWindow) {
-                            activeWindow = window;
-                            break;
+            for (UIWindowScene* scene in [UIApplication sharedApplication].connectedScenes) {
+                if (scene.activationState == UISceneActivationStateForegroundActive) {
+                    for (UIWindow *window in scene.windows) {
+                        // استخدام Selector لتجنب اكتشاف keyWindow من المترجم
+                        if ([window respondsToSelector:NSSelectorFromString(@"isKeyWindow")]) {
+                            if ([[window valueForKey:@"isKeyWindow"] boolValue]) {
+                                activeWindow = window;
+                                break;
+                            }
                         }
                     }
                 }
             }
-        } else {
-            // للأجهزة القديمة جداً
-            activeWindow = [[UIApplication sharedApplication] keyWindow];
         }
 
-        // إنشاء النص إذا وجدت النافذة
+        // إذا فشلت الطريقة أعلاه، نستخدم الطريقة البديلة الآمنة
+        if (!activeWindow) {
+            activeWindow = [[UIApplication sharedApplication] delegate].window;
+        }
+
+        // إنشاء النص
         if (activeWindow && !hassanyLabel) {
             hassanyLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, activeWindow.frame.size.width, 20)];
             hassanyLabel.text = @"hassany IPA";
@@ -45,7 +47,7 @@ static NSTimer *colorTimer;
             hassanyLabel.backgroundColor = [UIColor clearColor];
             hassanyLabel.userInteractionEnabled = NO;
             
-            // وضع النص في الأعلى
+            // وضع النص في أعلى الشاشة
             hassanyLabel.center = CGPointMake(activeWindow.center.x, 15);
             
             [activeWindow addSubview:hassanyLabel];
@@ -74,7 +76,7 @@ static NSTimer *colorTimer;
 @end
 
 // ==========================================
-// الربط مع التطبيق
+// الحقن (Hook)
 // ==========================================
 %hook UIApplication
 - (void)applicationDidBecomeActive:(id)application {
