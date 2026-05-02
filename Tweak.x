@@ -13,7 +13,6 @@ static NSTimer *retryTimer;
 @implementation HassanyOverlay
 
 + (void)startHassany {
-    // البدء بمحاولة الحقن كل ثانية حتى تظهر الواجهة
     if (!retryTimer) {
         retryTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 
                                                       target:self 
@@ -27,45 +26,52 @@ static NSTimer *retryTimer;
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow *activeWindow = nil;
 
-        // الطريقة الأكثر أماناً للوصول للنافذة النشطة
         if (@available(iOS 13.0, *)) {
-            for (UIWindowScene* scene in [UIApplication sharedApplication].connectedScenes) {
-                if (scene.activationState == UISceneActivationStateForegroundActive) {
-                    for (UIWindow *window in scene.windows) {
-                        if (window.isKeyWindow || window.windowLevel == UIWindowLevelNormal) {
-                            activeWindow = window;
-                            break;
+            for (UIScene *scene in [[UIApplication sharedApplication] connectedScenes]) {
+                if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
+                    UIWindowScene *windowScene = (UIWindowScene *)scene;
+                    for (UIWindow *window in windowScene.windows) {
+                        // استخدام Selector للهروب من فحص المترجم
+                        SEL keySel = NSSelectorFromString(@"isKeyWindow");
+                        if ([window respondsToSelector:keySel]) {
+                            BOOL isKey = ((BOOL (*)(id, SEL))objc_msgSend)(window, keySel);
+                            if (isKey) {
+                                activeWindow = window;
+                                break;
+                            }
                         }
                     }
                 }
             }
         }
 
+        // خطة بديلة (Fallback) إذا لم يجد النافذة بالطريقة السابقة
         if (!activeWindow) {
-            activeWindow = [[UIApplication sharedApplication] keyWindow];
+            activeWindow = [[UIApplication sharedApplication] delegate].window;
         }
 
-        // إذا وجدت النافذة، نقوم بحقن النص وإيقاف مؤقت المحاولة
         if (activeWindow && !hassanyLabel) {
             [retryTimer invalidate];
             retryTimer = nil;
 
-            hassanyLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, activeWindow.frame.size.width, 25)];
+            // إنشاء النص
+            hassanyLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, activeWindow.frame.size.width, 30)];
             hassanyLabel.text = @"hassany IPA";
-            hassanyLabel.font = [UIFont boldSystemFontOfSize:12];
+            hassanyLabel.font = [UIFont boldSystemFontOfSize:14]; // تكبير الخط شوي عشان يبين
             hassanyLabel.textAlignment = NSTextAlignmentCenter;
             hassanyLabel.backgroundColor = [UIColor clearColor];
             hassanyLabel.userInteractionEnabled = NO;
             
-            // وضعه في أعلى الشاشة (تأكد من رفعه ليكون ظاهراً)
-            hassanyLabel.center = CGPointMake(activeWindow.frame.size.width / 2, 20);
+            // تحديد الموقع (25 هو الارتفاع المناسب تحت النوتش)
+            hassanyLabel.center = CGPointMake(activeWindow.frame.size.width / 2, 25);
             
-            // إضافة النص فوق كل شيء
+            // رفعه فوق كل الطبقات
             hassanyLabel.layer.zPosition = MAXFLOAT;
             [activeWindow addSubview:hassanyLabel];
             [activeWindow bringSubviewToFront:hassanyLabel];
 
-            colorTimer = [NSTimer scheduledTimerWithTimeInterval:0.5 
+            // تشغيل مؤقت الألوان
+            colorTimer = [NSTimer scheduledTimerWithTimeInterval:0.4 
                                                           target:self 
                                                         selector:@selector(changeColor) 
                                                         userInfo:nil 
@@ -76,12 +82,12 @@ static NSTimer *retryTimer;
 
 + (void)changeColor {
     if (hassanyLabel) {
-        CGFloat red = (arc4random() % 255) / 255.0f;
-        CGFloat green = (arc4random() % 255) / 255.0f;
-        CGFloat blue = (arc4random() % 255) / 255.0f;
+        CGFloat r = (arc4random() % 255) / 255.0f;
+        CGFloat g = (arc4random() % 255) / 255.0f;
+        CGFloat b = (arc4random() % 255) / 255.0f;
         
-        [UIView animateWithDuration:0.4 animations:^{
-            hassanyLabel.textColor = [UIColor colorWithRed:red green:green blue:blue alpha:1.0];
+        [UIView animateWithDuration:0.3 animations:^{
+            hassanyLabel.textColor = [UIColor colorWithRed:r green:g blue:b alpha:1.0];
         }];
     }
 }
