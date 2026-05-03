@@ -1,54 +1,43 @@
 #import <UIKit/UIKit.h>
 
-// هوك على الـ UILabel (أكثر مكان تظهر فيه الحقوق والأسماء)
+// --- تغيير حقوق الـ UILabel ---
 %hook UILabel
-
 - (void)setText:(NSString *)text {
-    // قائمة بالكلمات التي تريد استبدالها (مثلاً: حقوق المطور الأصلي)
-    // يمكنك إضافة أي اسم تلاحظه في الدليبات الأخرى هنا
-    if ([text containsString:@"Designed by"] || 
-        [text containsString:@"Created by"] || 
-        [text containsString:@"Copyright"] ||
-        [text containsString:@"Developed by"]) {
+    if (text && ([text containsString:@"Designed by"] || 
+                 [text containsString:@"Created by"] || 
+                 [text containsString:@"Copyright"] ||
+                 [text containsString:@"Developed by"])) {
         
-        %orig(@"Hassany Property ✅"); // يغير السطر بالكامل
+        %orig(@"Hassany Property ✅");
     } else {
         %orig(text);
     }
 }
-
 %end
 
-// هوك على الأزرار (Buttons)
+// --- تغيير حقوق الأزرار ---
 %hook UIButton
-
 - (void)setTitle:(NSString *)title forState:(UIControlState)state {
-    if ([title animations] || [title containsString:@"Dev"]) {
+    // هنا صلحنا الخطأ: حذفنا animations وخلينا الفلتر يعتمد على محتوى النص
+    if (title && ([title containsString:@"Dev"] || [title containsString:@"By"])) {
         %orig(@"Hassany", state);
     } else {
         %orig(title, state);
     }
 }
-
 %end
 
-// هوك شامل على تنبيهات النظام (Alerts)
+// --- تغيير تنبيهات النظام ---
 %hook UIAlertController
-
 - (void)setTitle:(NSString *)title {
-    if (title) {
-        %orig(@"Hassany Security");
-    } else {
-        %orig(title);
-    }
+    %orig(@"Hassany Security");
 }
 
 - (void)setMessage:(NSString *)message {
-    if ([message containsString:@"vBy"] || [message containsString:@"@"]) {
+    if (message && ([message containsString:@"vBy"] || [message containsString:@"@"])) {
         %orig(@"Modified by Hussein Al-Hassani");
     } else {
         %orig(message);
     }
 }
-
 %end
