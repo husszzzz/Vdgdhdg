@@ -1,120 +1,106 @@
 #import <UIKit/UIKit.h>
 
-static UILabel *hassanyLabel;
-static NSTimer *colorTimer;
-static NSTimer *retryTimer;
-
-@interface HassanyOverlay : NSObject
-+ (void)startHassany;
-+ (void)tryToInject;
-+ (void)changeColor;
-+ (void)animateMovement;
+// تعريف واجهة النافذة الخاصة بنا
+@interface HassanyWindow : UIWindow
+@property (nonatomic, strong) UILabel *label;
 @end
 
-@implementation HassanyOverlay
+@implementation HassanyWindow
+@end
 
-+ (void)startHassany {
-    if (!retryTimer) {
-        retryTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 
+static HassanyWindow *hWindow;
+static NSTimer *colorTimer;
+
+@interface HassanyManager : NSObject
++ (void)createOverlay;
++ (void)changeColor;
++ (void)startAnimation;
+@end
+
+@implementation HassanyManager
+
++ (void)createOverlay {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (hWindow) return; // إذا موجودة لا تسوي وحدة ثانية
+
+        // 1. إنشاء النافذة بحجم صغير في أعلى الشاشة
+        // استخدمت CGRect كـ سحب من الشاشة مباشرة
+        CGRect screenRect = [[UIScreen mainScreen] bounds];
+        hWindow = [[HassanyWindow alloc] initWithFrame:CGRectMake(0, 0, screenRect.size.width, 50)];
+        
+        // 2. جعل النافذة شفافة وفوق كل شيء (حتى فوق الـ Status Bar)
+        hWindow.backgroundColor = [UIColor clearColor];
+        hWindow.windowLevel = UIWindowLevelStatusBar + 100.0;
+        hWindow.userInteractionEnabled = NO; // حتى ما تعيق اللمس
+        [hWindow setHidden:NO];
+        
+        // 3. إضافة النص
+        hWindow.label = [[UILabel alloc] initWithFrame:CGRectMake(-150, 10, 150, 30)];
+        hWindow.label.text = @"hassany IPA";
+        hWindow.label.font = [UIFont boldSystemFontOfSize:15];
+        hWindow.label.textAlignment = NSTextAlignmentCenter;
+        hWindow.label.textColor = [UIColor cyanColor];
+        
+        // إضافة ظل للنص عشان يبين بوضوح
+        hWindow.label.shadowColor = [UIColor blackColor];
+        hWindow.label.shadowOffset = CGSizeMake(1, 1);
+        
+        [hWindow addSubview:hWindow.label];
+        
+        // 4. تشغيل الألوان والحركة
+        [self startAnimation];
+        
+        colorTimer = [NSTimer scheduledTimerWithTimeInterval:0.4 
                                                       target:self 
-                                                    selector:@selector(tryToInject) 
+                                                    selector:@selector(changeColor) 
                                                     userInfo:nil 
                                                      repeats:YES];
-    }
-}
-
-+ (void)tryToInject {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        UIWindow *activeWindow = nil;
-
-        // البحث عن النافذة النشطة بطريقة مخفية لتجاوز المترجم
-        if (@available(iOS 13.0, *)) {
-            for (UIScene *scene in [[UIApplication sharedApplication] connectedScenes]) {
-                if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
-                    UIWindowScene *windowScene = (UIWindowScene *)scene;
-                    for (UIWindow *window in windowScene.windows) {
-                        @try {
-                            if ([[window valueForKey:@"isKeyWindow"] boolValue]) {
-                                activeWindow = window;
-                                break;
-                            }
-                        } @catch (NSException *e) {}
-                    }
-                }
-            }
-        }
-
-        if (!activeWindow) {
-            @try { activeWindow = [[UIApplication sharedApplication] delegate].window; } @catch (NSException *e) {}
-        }
-
-        // إذا وجدت النافذة ولم يتم حقن النص بعد
-        if (activeWindow && !hassanyLabel) {
-            [retryTimer invalidate];
-            retryTimer = nil;
-
-            // إنشاء التسمية (Label)
-            hassanyLabel = [[UILabel alloc] initWithFrame:CGRectMake(-150, 30, 150, 30)]; // يبدأ من خارج الشاشة يساراً
-            hassanyLabel.text = @"hassany IPA";
-            hassanyLabel.font = [UIFont boldSystemFontOfSize:16]; // خط أوضح
-            hassanyLabel.textAlignment = NSTextAlignmentCenter;
-            hassanyLabel.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.2]; // خلفية خفيفة جداً لضمان الظهور
-            hassanyLabel.layer.cornerRadius = 8;
-            hassanyLabel.clipsToBounds = YES;
-            hassanyLabel.userInteractionEnabled = NO;
-            hassanyLabel.layer.zPosition = 9999; // فوق كل شيء
-
-            [activeWindow addSubview:hassanyLabel];
-            [activeWindow bringSubviewToFront:hassanyLabel];
-
-            // تشغيل الألوان
-            colorTimer = [NSTimer scheduledTimerWithTimeInterval:0.4 target:self selector:@selector(changeColor) userInfo:nil repeats:YES];
-
-            // تشغيل الحركة
-            [self animateMovement];
-        }
     });
 }
 
-// دالة الحركة (تحريك النص من اليسار لليمين وبالعكس)
-+ (void)animateMovement {
-    if (!hassanyLabel) return;
++ (void)startAnimation {
+    if (!hWindow.label) return;
 
-    CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
+    CGFloat screenWidth = [[UIScreen mainScreen] bounds].size.width;
 
-    [UIView animateWithDuration:4.0 
+    // حركة من اليسار لليمين بشكل مستمر
+    [UIView animateWithDuration:5.0 
                           delay:0 
-                        options:UIViewAnimationOptionCurveLinear | UIViewAnimationOptionAllowUserInteraction 
+                        options:UIViewAnimationOptionCurveLinear 
                      animations:^{
-        // تحريك النص إلى أقصى اليمين
-        CGRect frame = hassanyLabel.frame;
-        frame.origin.x = screenWidth + 10;
-        hassanyLabel.frame = frame;
+        CGRect frame = hWindow.label.frame;
+        frame.origin.x = screenWidth + 20;
+        hWindow.label.frame = frame;
     } completion:^(BOOL finished) {
-        // إعادة النص لليسار والبدء من جديد
-        CGRect frame = hassanyLabel.frame;
+        CGRect frame = hWindow.label.frame;
         frame.origin.x = -150;
-        hassanyLabel.frame = frame;
-        [self animateMovement];
+        hWindow.label.frame = frame;
+        [self startAnimation];
     }];
 }
 
 + (void)changeColor {
-    if (hassanyLabel) {
+    if (hWindow.label) {
         CGFloat r = (arc4random() % 255) / 255.0f;
         CGFloat g = (arc4random() % 255) / 255.0f;
         CGFloat b = (arc4random() % 255) / 255.0f;
         
         [UIView animateWithDuration:0.3 animations:^{
-            hassanyLabel.textColor = [UIColor colorWithRed:r green:g blue:b alpha:1.0];
+            hWindow.label.textColor = [UIColor colorWithRed:r green:g blue:b alpha:1.0];
         }];
     }
 }
 @end
 
+// ==========================================
+// الحقن عند تشغيل أي تطبيق
+// ==========================================
 %hook UIApplication
 - (void)applicationDidBecomeActive:(id)application {
     %orig;
-    [HassanyOverlay startHassany];
+    // ننتظر ثانية وحدة بعدين نشغل النافذة مالتنا
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [HassanyManager createOverlay];
+    });
 }
 %end
