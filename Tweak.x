@@ -1,138 +1,107 @@
 #import <UIKit/UIKit.h>
 
-static UILabel *hassanyLabel;
-
-@interface HassanyTool : NSObject
-+ (void)injectLabel;
-+ (void)animateLabel;
-+ (void)changeColor;
+// --- تعريف واجهة المنيو ---
+@interface HassanyMenu : UIView
+@property (nonatomic, strong) UIView *containerView;
+@property (nonatomic, strong) UIButton *menuButton;
 @end
 
-@implementation HassanyTool
+static HassanyMenu *mainMenu;
+static BOOL isMenuOpen = NO;
 
-+ (void)injectLabel {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        UIWindow *appWindow = nil;
+@implementation HassanyMenu
 
-        // 1. الطريقة الآمنة للبحث عن النافذة (بدون الكلمات الممنوعة)
-        if (@available(iOS 13.0, *)) {
-            for (UIScene *scene in [[UIApplication sharedApplication] connectedScenes]) {
-                if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
-                    UIWindowScene *windowScene = (UIWindowScene *)scene;
-                    for (UIWindow *window in windowScene.windows) {
-                        @try {
-                            // استخدام KVC للهروب من المترجم
-                            if ([[window valueForKey:@"isKeyWindow"] boolValue]) {
-                                appWindow = window;
-                                break;
-                            }
-                        } @catch (NSException *e) {}
-                    }
-                }
-            }
-        }
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        // 1. إنشاء الزر العائم (الدائرة الصغيرة)
+        self.menuButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        self.menuButton.frame = CGRectMake(0, 0, 50, 50);
+        self.menuButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.1 blue:0.1 alpha:0.8];
+        [self.menuButton setTitle:@"H" forState:UIControlStateNormal];
+        self.menuButton.titleLabel.font = [UIFont boldSystemFontOfSize:24];
+        self.menuButton.layer.cornerRadius = 25;
+        self.menuButton.layer.borderWidth = 2;
+        self.menuButton.layer.borderColor = [UIColor cyanColor].CGColor;
+        [self.menuButton addTarget:self action:@selector(toggleMenu) forControlEvents:UIControlEventTouchUpInside];
+        [self addSubview:self.menuButton];
 
-        // 2. خطة بديلة باستخدام KVC فقط للمترجم العنيد
-        if (!appWindow) {
-            @try {
-                appWindow = [[UIApplication sharedApplication] valueForKey:@"keyWindow"];
-            } @catch (NSException *e) {}
-        }
+        // 2. إنشاء حاوية القائمة (مخفية في البداية)
+        self.containerView = [[UIView alloc] initWithFrame:CGRectMake(0, 60, 200, 250)];
+        self.containerView.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.95];
+        self.containerView.layer.cornerRadius = 15;
+        self.containerView.hidden = YES;
+        self.containerView.layer.borderWidth = 1;
+        self.containerView.layer.borderColor = [UIColor cyanColor].CGColor;
+        [self addSubview:self.containerView];
 
-        // 3. خطة الطوارئ الأخيرة
-        if (!appWindow) {
-            @try {
-                appWindow = [[[UIApplication sharedApplication] delegate] window];
-            } @catch (NSException *e) {}
-        }
+        // إضافة عنوان للمنيو
+        UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 10, 200, 30)];
+        title.text = @"Hassany Mod Menu";
+        title.textColor = [UIColor cyanColor];
+        title.textAlignment = NSTextAlignmentCenter;
+        title.font = [UIFont boldSystemFontOfSize:16];
+        [self.containerView addSubview:title];
 
-        // إذا لقينا النافذة وما ضايفين النص، هسه نضيفه
-        if (appWindow && !hassanyLabel) {
-            
-            // إنشاء النص مع خلفية شبه شفافة لضمان الوضوح التام
-            hassanyLabel = [[UILabel alloc] initWithFrame:CGRectMake(-200, 50, 200, 35)];
-            hassanyLabel.text = @"hassany IPA";
-            hassanyLabel.font = [UIFont boldSystemFontOfSize:18];
-            hassanyLabel.textColor = [UIColor whiteColor];
-            hassanyLabel.textAlignment = NSTextAlignmentCenter;
-            hassanyLabel.userInteractionEnabled = NO;
-            
-            // ترتيبات الشكل لضمان الظهور مليون بالمية
-            hassanyLabel.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.5]; // خلفية سوداء شفافة
-            hassanyLabel.layer.cornerRadius = 8;
-            hassanyLabel.clipsToBounds = YES;
-            hassanyLabel.layer.zPosition = 999999; // أعلى طبقة ممكنة
-            
-            // إضافة ظل
-            hassanyLabel.layer.shadowColor = [UIColor blackColor].CGColor;
-            hassanyLabel.layer.shadowOffset = CGSizeMake(2, 2);
-            hassanyLabel.layer.shadowOpacity = 1.0;
-
-            [appWindow addSubview:hassanyLabel];
-            [appWindow bringSubviewToFront:hassanyLabel];
-
-            // تشغيل الحركة والألوان
-            [self animateLabel];
-            [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(changeColor) userInfo:nil repeats:YES];
-        }
-    });
+        // إضافة زر لزيادة الجواهر داخل القائمة
+        UIButton *gemBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+        gemBtn.frame = CGRectMake(10, 50, 180, 40);
+        [gemBtn setTitle:@"إضافة 10,000 جوهرة 💎" forState:UIControlStateNormal];
+        [gemBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+        gemBtn.backgroundColor = [UIColor colorWithRed:0.2 green:0.2 blue:0.2 alpha:1.0];
+        gemBtn.layer.cornerRadius = 10;
+        [gemBtn addTarget:self action:@selector(addGemsAction) forControlEvents:UIControlEventTouchUpInside];
+        [self.containerView addSubview:gemBtn];
+    }
+    return self;
 }
 
-+ (void)animateLabel {
-    if (!hassanyLabel) return;
-    CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
-
-    [UIView animateWithDuration:5.0 delay:0 options:UIViewAnimationOptionCurveLinear | UIViewAnimationOptionAllowUserInteraction animations:^{
-        CGRect frame = hassanyLabel.frame;
-        frame.origin.x = screenWidth + 20;
-        hassanyLabel.frame = frame;
-    } completion:^(BOOL finished) {
-        CGRect frame = hassanyLabel.frame;
-        frame.origin.x = -200;
-        hassanyLabel.frame = frame;
-        [self animateLabel];
+- (void)toggleMenu {
+    isMenuOpen = !isMenuOpen;
+    [UIView animateWithDuration:0.3 animations:^{
+        self.containerView.hidden = !isMenuOpen;
+        self.menuButton.transform = isMenuOpen ? CGAffineTransformMakeRotation(M_PI_4) : CGAffineTransformIdentity;
     }];
 }
 
-+ (void)changeColor {
-    if (hassanyLabel) {
-        CGFloat r = (arc4random() % 255) / 255.0f;
-        CGFloat g = (arc4random() % 255) / 255.0f;
-        CGFloat b = (arc4random() % 255) / 255.0f;
-        [UIView animateWithDuration:0.2 animations:^{
-            hassanyLabel.textColor = [UIColor colorWithRed:r green:g blue:b alpha:1.0];
-        }];
-    }
+- (void)addGemsAction {
+    // كود حقن الجواهر في Stick War
+    @try {
+        Class profileClass = NSClassFromString(@"Profile");
+        if (profileClass) {
+            id mainProfile = [profileClass performSelector:NSSelectorFromString(@"main")];
+            if (mainProfile) {
+                int currentGems = [[mainProfile valueForKey:@"gems"] intValue];
+                [mainProfile performSelector:NSSelectorFromString(@"setGems:") withObject:@(currentGems + 10000)];
+                [mainProfile performSelector:NSSelectorFromString(@"save")];
+                
+                // إظهار رسالة تأكيد بسيطة
+                [self.menuButton setTitle:@"✅" forState:UIControlStateNormal];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [self.menuButton setTitle:@"H" forState:UIControlStateNormal];
+                });
+            }
+        }
+    } @catch (NSException *e) {}
 }
+
+// السماح بسحب الزر في أي مكان على الشاشة
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    UITouch *touch = [touches anyObject];
+    CGPoint currentLocation = [touch locationInView:self.superview];
+    self.center = currentLocation;
+}
+
 @end
 
-// ==========================================
-// الحقن الإجباري المطلق
-// ==========================================
+// --- الحقن في اللعبة ---
 %hook UIWindow
-
 - (void)makeKeyAndVisible {
     %orig;
-    [HassanyTool injectLabel];
-}
-
-// هذه الدالة تضمن "مليون بالمية" أن النص يبقى في المقدمة 
-// حتى لو اللعبة رسمت واجهات جديدة فوقه
-- (void)layoutSubviews {
-    %orig;
-    if (hassanyLabel && self == hassanyLabel.superview) {
-        [self bringSubviewToFront:hassanyLabel];
+    if (!mainMenu) {
+        mainMenu = [[HassanyMenu alloc] initWithFrame:CGRectMake(50, 100, 200, 310)];
+        mainMenu.layer.zPosition = 10000;
+        [self addSubview:mainMenu];
     }
-}
-
-%end
-
-%hook UIApplication
-- (void)applicationDidBecomeActive:(id)application {
-    %orig;
-    // المحاولة بعد ثانية ونص من تشغيل التطبيق
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [HassanyTool injectLabel];
-    });
 }
 %end
