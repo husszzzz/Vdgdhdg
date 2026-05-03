@@ -12,41 +12,68 @@ static UILabel *hassanyLabel;
 
 + (void)injectLabel {
     dispatch_async(dispatch_get_main_queue(), ^{
-        // 1. البحث عن النافذة الرئيسية للتطبيق بأي طريقة ممكنة
         UIWindow *appWindow = nil;
+
+        // 1. الطريقة الآمنة للبحث عن النافذة (بدون الكلمات الممنوعة)
         if (@available(iOS 13.0, *)) {
-            for (UIWindowScene* scene in [UIApplication sharedApplication].connectedScenes) {
-                if (scene.activationState == UISceneActivationStateForegroundActive) {
-                    appWindow = scene.windows.firstObject;
-                    break;
+            for (UIScene *scene in [[UIApplication sharedApplication] connectedScenes]) {
+                if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
+                    UIWindowScene *windowScene = (UIWindowScene *)scene;
+                    for (UIWindow *window in windowScene.windows) {
+                        @try {
+                            // استخدام KVC للهروب من المترجم
+                            if ([[window valueForKey:@"isKeyWindow"] boolValue]) {
+                                appWindow = window;
+                                break;
+                            }
+                        } @catch (NSException *e) {}
+                    }
                 }
             }
         }
-        if (!appWindow) appWindow = [UIApplication sharedApplication].keyWindow;
-        if (!appWindow) appWindow = [[[UIApplication sharedApplication] delegate] window];
 
-        // 2. إذا لكينا النافذة وما ضايفين النص قبل، نضيفه هسه
+        // 2. خطة بديلة باستخدام KVC فقط للمترجم العنيد
+        if (!appWindow) {
+            @try {
+                appWindow = [[UIApplication sharedApplication] valueForKey:@"keyWindow"];
+            } @catch (NSException *e) {}
+        }
+
+        // 3. خطة الطوارئ الأخيرة
+        if (!appWindow) {
+            @try {
+                appWindow = [[[UIApplication sharedApplication] delegate] window];
+            } @catch (NSException *e) {}
+        }
+
+        // إذا لقينا النافذة وما ضايفين النص، هسه نضيفه
         if (appWindow && !hassanyLabel) {
-            hassanyLabel = [[UILabel alloc] initWithFrame:CGRectMake(-150, 40, 150, 30)];
+            
+            // إنشاء النص مع خلفية شبه شفافة لضمان الوضوح التام
+            hassanyLabel = [[UILabel alloc] initWithFrame:CGRectMake(-200, 50, 200, 35)];
             hassanyLabel.text = @"hassany IPA";
-            hassanyLabel.font = [UIFont boldSystemFontOfSize:16];
+            hassanyLabel.font = [UIFont boldSystemFontOfSize:18];
             hassanyLabel.textColor = [UIColor whiteColor];
             hassanyLabel.textAlignment = NSTextAlignmentCenter;
-            hassanyLabel.layer.zPosition = 10000; // نخليه فوك كل شي
             hassanyLabel.userInteractionEnabled = NO;
-
-            // إضافة ظل فخم جداً عشان يبين بالخلفيات البيضة والسودة
+            
+            // ترتيبات الشكل لضمان الظهور مليون بالمية
+            hassanyLabel.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.5]; // خلفية سوداء شفافة
+            hassanyLabel.layer.cornerRadius = 8;
+            hassanyLabel.clipsToBounds = YES;
+            hassanyLabel.layer.zPosition = 999999; // أعلى طبقة ممكنة
+            
+            // إضافة ظل
             hassanyLabel.layer.shadowColor = [UIColor blackColor].CGColor;
-            hassanyLabel.layer.shadowOffset = CGSizeMake(0, 0);
+            hassanyLabel.layer.shadowOffset = CGSizeMake(2, 2);
             hassanyLabel.layer.shadowOpacity = 1.0;
-            hassanyLabel.layer.shadowRadius = 4.0;
 
             [appWindow addSubview:hassanyLabel];
             [appWindow bringSubviewToFront:hassanyLabel];
 
             // تشغيل الحركة والألوان
             [self animateLabel];
-            [NSTimer scheduledTimerWithTimeInterval:0.3 target:self selector:@selector(changeColor) userInfo:nil repeats:YES];
+            [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(changeColor) userInfo:nil repeats:YES];
         }
     });
 }
@@ -55,13 +82,13 @@ static UILabel *hassanyLabel;
     if (!hassanyLabel) return;
     CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
 
-    [UIView animateWithDuration:6.0 delay:0 options:UIViewAnimationOptionCurveLinear animations:^{
+    [UIView animateWithDuration:5.0 delay:0 options:UIViewAnimationOptionCurveLinear | UIViewAnimationOptionAllowUserInteraction animations:^{
         CGRect frame = hassanyLabel.frame;
         frame.origin.x = screenWidth + 20;
         hassanyLabel.frame = frame;
     } completion:^(BOOL finished) {
         CGRect frame = hassanyLabel.frame;
-        frame.origin.x = -150;
+        frame.origin.x = -200;
         hassanyLabel.frame = frame;
         [self animateLabel];
     }];
@@ -80,23 +107,31 @@ static UILabel *hassanyLabel;
 @end
 
 // ==========================================
-// الحقن الذكي: نشغله بكل لحظة التطبيق يتفاعل بيها
+// الحقن الإجباري المطلق
 // ==========================================
 %hook UIWindow
+
 - (void)makeKeyAndVisible {
     %orig;
     [HassanyTool injectLabel];
 }
+
+// هذه الدالة تضمن "مليون بالمية" أن النص يبقى في المقدمة 
+// حتى لو اللعبة رسمت واجهات جديدة فوقه
+- (void)layoutSubviews {
+    %orig;
+    if (hassanyLabel && self == hassanyLabel.superview) {
+        [self bringSubviewToFront:hassanyLabel];
+    }
+}
+
 %end
 
 %hook UIApplication
 - (void)applicationDidBecomeActive:(id)application {
     %orig;
-    // نكرر المحاولة بعد ثانية وثلاث ثواني لضمان الظهور
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [HassanyTool injectLabel];
-    });
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    // المحاولة بعد ثانية ونص من تشغيل التطبيق
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [HassanyTool injectLabel];
     });
 }
