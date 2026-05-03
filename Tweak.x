@@ -1,119 +1,103 @@
 #import <UIKit/UIKit.h>
 
-// 1. تعريف متحكم الواجهة (ضروري جداً لظهور النافذة في الإصدارات الجديدة)
-@interface HassanyViewController : UIViewController
-@property (nonatomic, strong) UILabel *movingLabel;
-@end
+static UILabel *hassanyLabel;
 
-@implementation HassanyViewController
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    self.view.backgroundColor = [UIColor clearColor];
-    
-    // إنشاء النص
-    self.movingLabel = [[UILabel alloc] initWithFrame:CGRectMake(-150, 10, 150, 30)];
-    self.movingLabel.text = @"hassany IPA";
-    self.movingLabel.font = [UIFont boldSystemFontOfSize:15];
-    self.movingLabel.textColor = [UIColor cyanColor];
-    self.movingLabel.textAlignment = NSTextAlignmentCenter;
-    
-    // إضافة ظل فخم للنص
-    self.movingLabel.shadowColor = [UIColor blackColor];
-    self.movingLabel.shadowOffset = CGSizeMake(1, 1);
-    
-    [self.view addSubview:self.movingLabel];
-}
-@end
-
-// 2. تعريف النافذة المستقلة
-static UIWindow *hWindow = nil;
-
-@interface HassanyManager : NSObject
-+ (void)launchOverlay;
+@interface HassanyTool : NSObject
++ (void)injectLabel;
 + (void)animateLabel;
 + (void)changeColor;
 @end
 
-@implementation HassanyManager
+@implementation HassanyTool
 
-+ (void)launchOverlay {
++ (void)injectLabel {
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (hWindow) return;
-
-        // البحث عن المشهد النشط (WindowScene) - هذا هو السر!
-        UIWindowScene *activeScene = nil;
+        // 1. البحث عن النافذة الرئيسية للتطبيق بأي طريقة ممكنة
+        UIWindow *appWindow = nil;
         if (@available(iOS 13.0, *)) {
-            for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
-                if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
-                    activeScene = (UIWindowScene *)scene;
+            for (UIWindowScene* scene in [UIApplication sharedApplication].connectedScenes) {
+                if (scene.activationState == UISceneActivationStateForegroundActive) {
+                    appWindow = scene.windows.firstObject;
                     break;
                 }
             }
         }
+        if (!appWindow) appWindow = [UIApplication sharedApplication].keyWindow;
+        if (!appWindow) appWindow = [[[UIApplication sharedApplication] delegate] window];
 
-        // إنشاء النافذة وربطها بالمشهد
-        if (activeScene) {
-            hWindow = [[UIWindow alloc] initWithWindowScene:activeScene];
-        } else {
-            hWindow = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+        // 2. إذا لكينا النافذة وما ضايفين النص قبل، نضيفه هسه
+        if (appWindow && !hassanyLabel) {
+            hassanyLabel = [[UILabel alloc] initWithFrame:CGRectMake(-150, 40, 150, 30)];
+            hassanyLabel.text = @"hassany IPA";
+            hassanyLabel.font = [UIFont boldSystemFontOfSize:16];
+            hassanyLabel.textColor = [UIColor whiteColor];
+            hassanyLabel.textAlignment = NSTextAlignmentCenter;
+            hassanyLabel.layer.zPosition = 10000; // نخليه فوك كل شي
+            hassanyLabel.userInteractionEnabled = NO;
+
+            // إضافة ظل فخم جداً عشان يبين بالخلفيات البيضة والسودة
+            hassanyLabel.layer.shadowColor = [UIColor blackColor].CGColor;
+            hassanyLabel.layer.shadowOffset = CGSizeMake(0, 0);
+            hassanyLabel.layer.shadowOpacity = 1.0;
+            hassanyLabel.layer.shadowRadius = 4.0;
+
+            [appWindow addSubview:hassanyLabel];
+            [appWindow bringSubviewToFront:hassanyLabel];
+
+            // تشغيل الحركة والألوان
+            [self animateLabel];
+            [NSTimer scheduledTimerWithTimeInterval:0.3 target:self selector:@selector(changeColor) userInfo:nil repeats:YES];
         }
-
-        hWindow.windowLevel = UIWindowLevelAlert + 1000; // أعلى مستوى ممكن
-        hWindow.backgroundColor = [UIColor clearColor];
-        hWindow.userInteractionEnabled = NO; // حتى لا يضايق اللمس
-        
-        // تعيين المتحكم الجذري (هذا اللي كان ناقص)
-        HassanyViewController *vc = [[HassanyViewController alloc] init];
-        hWindow.rootViewController = vc;
-        
-        [hWindow setHidden:NO];
-        [hWindow makeKeyAndVisible];
-
-        // بدء الحركة والألوان
-        [self animateLabel];
-        [NSTimer scheduledTimerWithTimeInterval:0.4 target:self selector:@selector(changeColor) userInfo:nil repeats:YES];
     });
 }
 
 + (void)animateLabel {
-    HassanyViewController *vc = (HassanyViewController *)hWindow.rootViewController;
-    if (!vc.movingLabel) return;
-
+    if (!hassanyLabel) return;
     CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
 
-    [UIView animateWithDuration:5.0 delay:0 options:UIViewAnimationOptionCurveLinear animations:^{
-        CGRect frame = vc.movingLabel.frame;
+    [UIView animateWithDuration:6.0 delay:0 options:UIViewAnimationOptionCurveLinear animations:^{
+        CGRect frame = hassanyLabel.frame;
         frame.origin.x = screenWidth + 20;
-        vc.movingLabel.frame = frame;
+        hassanyLabel.frame = frame;
     } completion:^(BOOL finished) {
-        CGRect frame = vc.movingLabel.frame;
+        CGRect frame = hassanyLabel.frame;
         frame.origin.x = -150;
-        vc.movingLabel.frame = frame;
-        [self animateLabel]; // إعادة الحركة للأبد
+        hassanyLabel.frame = frame;
+        [self animateLabel];
     }];
 }
 
 + (void)changeColor {
-    HassanyViewController *vc = (HassanyViewController *)hWindow.rootViewController;
-    if (vc.movingLabel) {
+    if (hassanyLabel) {
         CGFloat r = (arc4random() % 255) / 255.0f;
         CGFloat g = (arc4random() % 255) / 255.0f;
         CGFloat b = (arc4random() % 255) / 255.0f;
-        
-        [UIView animateWithDuration:0.3 animations:^{
-            vc.movingLabel.textColor = [UIColor colorWithRed:r green:g blue:b alpha:1.0];
+        [UIView animateWithDuration:0.2 animations:^{
+            hassanyLabel.textColor = [UIColor colorWithRed:r green:g blue:b alpha:1.0];
         }];
     }
 }
 @end
 
-// 3. الحقن في التطبيق
+// ==========================================
+// الحقن الذكي: نشغله بكل لحظة التطبيق يتفاعل بيها
+// ==========================================
+%hook UIWindow
+- (void)makeKeyAndVisible {
+    %orig;
+    [HassanyTool injectLabel];
+}
+%end
+
 %hook UIApplication
 - (void)applicationDidBecomeActive:(id)application {
     %orig;
-    // تأخير بسيط للتأكد من أن التطبيق جاهز لعرض النوافذ
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [HassanyManager launchOverlay];
+    // نكرر المحاولة بعد ثانية وثلاث ثواني لضمان الظهور
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [HassanyTool injectLabel];
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [HassanyTool injectLabel];
     });
 }
 %end
