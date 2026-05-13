@@ -1,10 +1,15 @@
-TARGET := iphone:clang:latest:14.0
-ARCHS = arm64
+# إعدادات المعالجات المدعومة
+export ARCHS = arm64 arm64e
 
-include $(THEOS)/makefiles/common.mk
-
+# اسم التويك (تأكد إنه نفس اللي بصورة المشروع)
 TWEAK_NAME = HearBoostPatch
 HearBoostPatch_FILES = Tweak.x
-HearBoostPatch_CFLAGS = -fobjc-arc
 
+# إضافة الأطر البرمجية اللازمة
+HearBoostPatch_FRAMEWORKS = UIKit
+
+# السطر السحري لتجاهل أخطاء الـ Deprecated والتحذيرات
+HearBoostPatch_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-error
+
+include $(THEOS)/makefiles/common.mk
 include $(THEOS_MAKE_PATH)/tweak.mk
