@@ -1,30 +1,25 @@
 #import <UIKit/UIKit.h>
 
-// 1. إخفاء أي تنبيه (Alert) يظهر عند تشغيل التطبيق
+// هوك لاستهداف أي تنبيه يظهر في التطبيق
 %hook UIAlertController
+
 - (void)viewDidAppear:(BOOL)animated {
-    // إغلاق التنبيه فوراً دون تدخل المستخدم
+    // إخفاء التنبيه فوراً بدون أن يشعر المستخدم
     [self dismissViewControllerAnimated:NO completion:nil];
+    
+    // تنفيذ الأمر الأصلي للتطبيق (بدون إظهار الواجهة)
+    %orig(NO); 
+}
+
+%end
+
+// هوك إضافي لتعطيل الـ UIAlertView القديم بطريقة لا تسبب خطأ في البناء
+%hook UIView
+- (void)didAddSubview:(UIView *)subview {
     %orig;
-}
-%end
-
-// 2. اعتراض تنبيهات UIAlertView القديمة
-%hook UIAlertView
-- (void)show {
-    // منع التنبيه من الظهور نهائياً
-    return;
-}
-%end
-
-// 3. محاولة تعطيل دوال التحقق من التوقيع أو الحقوق الشائعة
-// ملاحظة: هذا الجزء تجريبي ويعتمد على مهارة المطور الأصلي
-%hook NSUserDefaults
-- (id)objectForKey:(NSString *)defaultName {
-    // إذا كان التطبيق يبحث عن مفتاح يخص "الحقوق" أو "الترحيب"، يمكننا التلاعب به هنا
-    if ([defaultName containsString:@"showWelcome"] || [defaultName containsString:@"credits"]) {
-        return @NO; // إرجاع "كاذب" لعدم إظهار الرسالة
+    if ([subview isKindOfClass:NSClassFromString(@"UIAlertView")]) {
+        [subview setHidden:YES];
+        [subview removeFromSuperview];
     }
-    return %orig;
 }
 %end
