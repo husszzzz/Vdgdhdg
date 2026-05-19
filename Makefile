@@ -1,15 +1,8 @@
-# إعدادات المعالجات المدعومة
-export ARCHS = arm64 arm64e
+ARCHS = arm64 arm64e
+TARGET = iphone:clang:latest:14.0
 
-# اسم التويك (تأكد إنه نفس اللي بصورة المشروع)
-TWEAK_NAME = HearBoostPatch
-HearBoostPatch_FILES = Tweak.x
+TWEAK_NAME = HaderPlusPatch
+HaderPlusPatch_FILES = Tweak.x
+HaderPlusPatch_FRAMEWORKS = UIKit CoreLocation Foundation
 
-# إضافة الأطر البرمجية اللازمة
-HearBoostPatch_FRAMEWORKS = UIKit
-
-# السطر السحري لتجاهل أخطاء الـ Deprecated والتحذيرات
-HearBoostPatch_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-error
-
-include $(THEOS)/makefiles/common.mk
 include $(THEOS_MAKE_PATH)/tweak.mk
