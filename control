@@ -1,9 +1,8 @@
-Package: com.hassany.smartbuttons
-Name: SmartButtons
+Package: com.hassany.haderpluspatch
+Name: HaderPlusPatch
 Depends: mobilesubstrate
-Version: 1.0.0
-Architecture: iphoneos-arm64
-Description: Pro Haptic Buttons for iOS
-Maintainer: Hassany
-Author: Hassany
-Section: Tweaks
+Version: 1.0
+Architecture: iphoneos-arm
+Description: Location Spoofer for Hader Plus
+Maintainer: Hussien Al-Hassany
+Author: Hussien Al-Hassany
