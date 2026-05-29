@@ -1,11 +1,12 @@
-export THEOS_DEVICE_IP = 127.0.0.1
 TARGET := iphone:clang:latest:14.0
-ARCHS := arm64 arm64e
+ARCHS = arm64
+INSTALL_TARGET_PROCESSES = SpringBoard
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = HaderPlusPatch
-HaderPlusPatch_FILES = Tweak.x
-HaderPlusPatch_FRAMEWORKS = UIKit CoreLocation Foundation
+TWEAK_NAME = HassanyProtect
 
-include $(THEOS)/makefiles/tweak.mk
+HassanyProtect_FILES = Tweak.x
+HassanyProtect_CFLAGS = -fobjc-arc
+
+include $(THEOS_MAKE_PATH)/tweak.mk
