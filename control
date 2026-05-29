@@ -1,8 +1,9 @@
-Package: com.hassany.haderpluspatch
-Name: HaderPlusPatch
+Package: com.hassany.protect
+Name: HassanyProtect
 Depends: mobilesubstrate
 Version: 1.0
-Architecture: iphoneos-arm
-Description: Location Spoofer for Hader Plus
-Maintainer: Hussien Al-Hassany
-Author: Hussien Al-Hassany
+Architecture: iphoneos-arm64
+Description: أداة حماية تطبيقات الحسني
+Maintainer: Hassany
+Author: Hassany
+Section: Tweaks
