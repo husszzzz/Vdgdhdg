@@ -45,7 +45,10 @@
     }];
     [alert addAction:action];
     
-    UIWindow *window = [UIApplication sharedApplication].keyWindow;
-    [window.rootViewController presentViewController:alert animated:YES completion:nil];
+    // التعديل هنا: حذفنا سطر keyWindow واستخدمنا self مباشرة لحل الخطأ
+    UIViewController *rootVC = self.rootViewController;
+    if (rootVC) {
+        [rootVC presentViewController:alert animated:YES completion:nil];
+    }
 }
 %end
