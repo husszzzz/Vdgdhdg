@@ -1,7 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 
-// 1. هوك لتجاوز قيود الشبكة (ليعمل التطبيق على البيانات فوراً)
+// 1. هوك لتجاوز قيود الشبكة (يعمل التطبيق على البيانات)
 %hook NSObject
 - (BOOL)isReachableViaWWAN { return NO; }
 - (BOOL)isReachableViaWiFi { return YES; }
@@ -12,10 +12,10 @@
 - (BOOL)isConstrained { return NO; }
 %end
 
-// 2. كود الحماية (طلب الكود عند الفتح)
-%interface UIWindow (Hassany)
+// 2. كود الحماية
+@interface UIWindow (Hassany)
 - (void)showHassanyAlert;
-%end
+@end
 
 %hook UIWindow
 - (void)makeKeyAndVisible {
@@ -38,9 +38,8 @@
     UIAlertAction *action = [UIAlertAction actionWithTitle:@"دخول" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         NSString *code = alert.textFields.firstObject.text;
         if ([code isEqualToString:@"Hassany123"]) {
-            // صحيح: يكمل التطبيق
+            // كود صحيح
         } else {
-            // خطأ: خروج إجباري
             exit(0);
         }
     }];
