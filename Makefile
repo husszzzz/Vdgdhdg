@@ -1,12 +1,12 @@
 TARGET := iphone:clang:latest:14.0
-ARCHS = arm64
 INSTALL_TARGET_PROCESSES = SpringBoard
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = HassanyProtect
+TWEAK_NAME = HIPAMenu
 
-HassanyProtect_FILES = Tweak.x
-HassanyProtect_CFLAGS = -fobjc-arc
+HIPAMenu_FILES = Tweak.x
+HIPAMenu_CFLAGS = -fobjc-arc
+HIPAMenu_FRAMEWORKS = UIKit Foundation CoreGraphics
 
 include $(THEOS_MAKE_PATH)/tweak.mk
