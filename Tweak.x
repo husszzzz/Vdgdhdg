@@ -1,116 +1,94 @@
 #import <UIKit/UIKit.h>
 
-// واجهة النافذة العائمة
-@interface HasanyMenuWindow : UIWindow
+@interface HasanyMenuManager : NSObject
+@property (nonatomic, strong) UIWindow *mainWindow;
 @property (nonatomic, strong) UIButton *floatingButton;
 @property (nonatomic, strong) UIView *mainMenuPanel;
-@property (nonatomic, strong) UIScrollView *contentScrollView;
++ (instancetype)sharedManager;
+- (void)setupUIInWindow:(UIWindow *)window;
 @end
 
-@implementation HasanyMenuWindow
+@implementation HasanyMenuManager
 
-- (instancetype)initWithFrame:(CGRect)frame {
-    self = [super initWithFrame:frame];
-    if (self) {
-        self.windowLevel = UIWindowLevelAlert + 1; // ليكون فوق اللعبة دائماً
-        self.hidden = NO;
-        self.backgroundColor = [UIColor clearColor];
-        
-        [self setupFloatingButton];
-        [self setupMainMenu];
-    }
-    return self;
+// دالة التشغيل لمرة واحدة
++ (instancetype)sharedManager {
+    static HasanyMenuManager *shared = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        shared = [[self alloc] init];
+    });
+    return shared;
 }
 
-// 1. تصميم الزر العائم (الدائرة المتحركة)
-- (void)setupFloatingButton {
+// دالة رسم الواجهة فوق اللعبة
+- (void)setupUIInWindow:(UIWindow *)window {
+    if (self.floatingButton) return; // حتى لا تتكرر الدائرة أكثر من مرة
+    
+    self.mainWindow = window;
+    
+    // 1. الدائرة المتحركة (H-IPA)
     self.floatingButton = [UIButton buttonWithType:UIButtonTypeCustom];
     self.floatingButton.frame = CGRectMake(20, 100, 60, 60);
-    self.floatingButton.backgroundColor = [UIColor colorWithRed:0.6f green:0.15f blue:0.45f alpha:0.9f]; // لون بنفسجي فخم
+    self.floatingButton.backgroundColor = [UIColor colorWithRed:0.6f green:0.15f blue:0.45f alpha:0.9f];
     self.floatingButton.layer.cornerRadius = 30;
     self.floatingButton.layer.borderWidth = 2;
     self.floatingButton.layer.borderColor = [UIColor whiteColor].CGColor;
-    
     [self.floatingButton setTitle:@"H-IPA" forState:UIControlStateNormal];
     self.floatingButton.titleLabel.font = [UIFont boldSystemFontOfSize:16];
     
-    // إضافة حركة السحب (التحريك)
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
     [self.floatingButton addGestureRecognizer:pan];
-    
-    // إضافة فتح القائمة
     [self.floatingButton addTarget:self action:@selector(toggleMenu) forControlEvents:UIControlEventTouchUpInside];
     
-    [self addSubview:self.floatingButton];
-}
-
-// 2. تصميم القائمة الرئيسية (المنيو)
-- (void)setupMainMenu {
-    self.mainMenuPanel = [[UIView alloc] initWithFrame:CGRectMake(50, 150, 300, 400)];
+    // إضافتها للعبة
+    [window addSubview:self.floatingButton];
+    
+    // 2. تصميم المنيو
+    self.mainMenuPanel = [[UIView alloc] initWithFrame:CGRectMake(50, 150, 300, 420)];
+    self.mainMenuPanel.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.98];
     self.mainMenuPanel.layer.cornerRadius = 15;
-    self.mainMenuPanel.clipsToBounds = YES;
-    self.mainMenuPanel.hidden = YES; // مخفي بالبداية
+    self.mainMenuPanel.layer.borderWidth = 1.5;
+    self.mainMenuPanel.layer.borderColor = [UIColor colorWithRed:0.90f green:0.20f blue:0.60f alpha:1.0f].CGColor;
+    self.mainMenuPanel.hidden = YES; // مخفية لحد ما يضغط الدائرة
     
-    // تأثير الضباب (Blur) للخلفية
-    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
-    UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-    blurView.frame = self.mainMenuPanel.bounds;
-    [self.mainMenuPanel addSubview:blurView];
-    
-    // عنوان المنيو
+    // العنوان
     UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 10, 300, 30)];
     title.text = @"متجر الحسني - H-IPA VIP";
-    title.textColor = [UIColor colorWithRed:0.90f green:0.20f blue:0.60f alpha:1.0f]; // وردي مضيء
+    title.textColor = [UIColor colorWithRed:0.90f green:0.20f blue:0.60f alpha:1.0f];
     title.textAlignment = NSTextAlignmentCenter;
     title.font = [UIFont boldSystemFontOfSize:20];
     [self.mainMenuPanel addSubview:title];
     
-    // تصميم الأقسام (ESP, Aimbot, Settings)
-    [self createSectionTitle:@"[ كشف الأماكن - ESP ]" yPos:50];
-    [self createFakeToggle:@"كشف الأشخاص (أحمر)" yPos:80];
-    [self createFakeToggle:@"كشف الأسلحة والسيارات" yPos:120];
-    [self createFakeToggle:@"خطوط العدو الرادارية" yPos:160];
+    // إضافة خيارات الهاك الوهمية
+    [self addLabel:@"[ كشف الأماكن - ESP ]" y:50 isHeader:YES];
+    [self addToggle:@"كشف الأشخاص (أحمر)" y:80];
+    [self addToggle:@"كشف الأسلحة والسيارات" y:120];
+    [self addToggle:@"خطوط العدو الرادارية" y:160];
     
-    [self createSectionTitle:@"[ قسم الإيم بوت - Aimbot ]" yPos:210];
-    [self createFakeToggle:@"تفعيل الإيم بوت (قوي)" yPos:240];
+    [self addLabel:@"[ قسم الإيم بوت - Aimbot ]" y:210 isHeader:YES];
+    [self addToggle:@"تفعيل الإيم بوت (قوي)" y:240];
     
-    // قسم الإعدادات (الصورة والروابط)
-    [self createSettingsSection:290];
+    // أزرار المطور وإغلاق اللعبة
+    UIButton *tgButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    tgButton.frame = CGRectMake(20, 300, 120, 30);
+    [tgButton setTitle:@"المطور @OM_G9" forState:UIControlStateNormal];
+    [tgButton setTitleColor:[UIColor cyanColor] forState:UIControlStateNormal];
+    [tgButton addTarget:self action:@selector(openTelegram) forControlEvents:UIControlEventTouchUpInside];
+    [self.mainMenuPanel addSubview:tgButton];
     
-    [self addSubview:self.mainMenuPanel];
-}
-
-// دالة مساعدة لإنشاء نصوص الأقسام
-- (void)createSectionTitle:(NSString *)title yPos:(CGFloat)y {
-    UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(10, y, 280, 25)];
-    lbl.text = title;
-    lbl.textColor = [UIColor whiteColor];
-    lbl.font = [UIFont boldSystemFontOfSize:16];
-    [self.mainMenuPanel addSubview:lbl];
-}
-
-// دالة مساعدة لإنشاء أزرار التفعيل الوهمية (Switches)
-- (void)createFakeToggle:(NSString *)name yPos:(CGFloat)y {
-    UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(20, y, 200, 30)];
-    lbl.text = name;
-    lbl.textColor = [UIColor lightGrayColor];
-    lbl.font = [UIFont systemFontOfSize:14];
-    [self.mainMenuPanel addSubview:lbl];
+    UIButton *exitButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    exitButton.frame = CGRectMake(160, 300, 120, 30);
+    [exitButton setTitle:@"إغلاق اللعبة" forState:UIControlStateNormal];
+    [exitButton setTitleColor:[UIColor redColor] forState:UIControlStateNormal];
+    [exitButton addTarget:self action:@selector(exitGame) forControlEvents:UIControlEventTouchUpInside];
+    [self.mainMenuPanel addSubview:exitButton];
     
-    UISwitch *toggle = [[UISwitch alloc] initWithFrame:CGRectMake(230, y, 50, 30)];
-    toggle.onTintColor = [UIColor colorWithRed:0.60f green:0.15f blue:0.45f alpha:1.0f];
-    [self.mainMenuPanel addSubview:toggle];
-}
-
-// 3. تصميم قسم الإعدادات (الصورة، المطور، إغلاق اللعبة)
-- (void)createSettingsSection:(CGFloat)y {
-    // تحميل صورة القناة
-    UIImageView *logoView = [[UIImageView alloc] initWithFrame:CGRectMake(20, y, 40, 40)];
-    logoView.layer.cornerRadius = 20;
+    // صورة القناة الخاصة بك
+    UIImageView *logoView = [[UIImageView alloc] initWithFrame:CGRectMake(130, 350, 50, 50)];
+    logoView.layer.cornerRadius = 25;
     logoView.clipsToBounds = YES;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        NSURL *url = [NSURL URLWithString:@"https://a.top4top.io/p_38130ynm30.jpeg"];
-        NSData *data = [NSData dataWithContentsOfURL:url];
+        NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"https://a.top4top.io/p_38130ynm30.jpeg"]];
         if (data) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 logoView.image = [UIImage imageWithData:data];
@@ -119,32 +97,35 @@
     });
     [self.mainMenuPanel addSubview:logoView];
     
-    // زر قناة التليجرام
-    UIButton *tgButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    tgButton.frame = CGRectMake(70, y, 120, 40);
-    [tgButton setTitle:@"المطور: @OM_G9" forState:UIControlStateNormal];
-    [tgButton setTitleColor:[UIColor cyanColor] forState:UIControlStateNormal];
-    [tgButton addTarget:self action:@selector(openTelegram) forControlEvents:UIControlEventTouchUpInside];
-    [self.mainMenuPanel addSubview:tgButton];
-    
-    // زر إغلاق اللعبة
-    UIButton *exitButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    exitButton.frame = CGRectMake(200, y, 80, 40);
-    [exitButton setTitle:@"إغلاق اللعبة" forState:UIControlStateNormal];
-    [exitButton setTitleColor:[UIColor redColor] forState:UIControlStateNormal];
-    exitButton.titleLabel.font = [UIFont boldSystemFontOfSize:14];
-    [exitButton addTarget:self action:@selector(exitGame) forControlEvents:UIControlEventTouchUpInside];
-    [self.mainMenuPanel addSubview:exitButton];
+    // إضافة المنيو للعبة
+    [window addSubview:self.mainMenuPanel];
 }
 
-// الأوامر (التحريك والفتح والإغلاق)
+// أدوات مساعدة للتصميم
+- (void)addLabel:(NSString *)text y:(CGFloat)y isHeader:(BOOL)isHeader {
+    UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(10, y, 200, 25)];
+    lbl.text = text;
+    lbl.textColor = isHeader ? [UIColor whiteColor] : [UIColor lightGrayColor];
+    lbl.font = isHeader ? [UIFont boldSystemFontOfSize:16] : [UIFont systemFontOfSize:14];
+    [self.mainMenuPanel addSubview:lbl];
+}
+
+- (void)addToggle:(NSString *)text y:(CGFloat)y {
+    [self addLabel:text y:y+5 isHeader:NO];
+    UISwitch *sw = [[UISwitch alloc] initWithFrame:CGRectMake(230, y, 50, 30)];
+    sw.onTintColor = [UIColor colorWithRed:0.60f green:0.15f blue:0.45f alpha:1.0f];
+    [self.mainMenuPanel addSubview:sw];
+}
+
+// تحريك الدائرة
 - (void)handlePan:(UIPanGestureRecognizer *)recognizer {
-    CGPoint translation = [recognizer translationInView:self];
-    CGPoint newCenter = CGPointMake(recognizer.view.center.x + translation.x, recognizer.view.center.y + translation.y);
-    recognizer.view.center = newCenter;
-    [recognizer setTranslation:CGPointZero inView:self];
+    UIView *view = recognizer.view;
+    CGPoint translation = [recognizer translationInView:view.superview];
+    view.center = CGPointMake(view.center.x + translation.x, view.center.y + translation.y);
+    [recognizer setTranslation:CGPointZero inView:view.superview];
 }
 
+// إظهار وإخفاء المنيو
 - (void)toggleMenu {
     self.mainMenuPanel.hidden = !self.mainMenuPanel.hidden;
 }
@@ -154,32 +135,18 @@
 }
 
 - (void)exitGame {
-    exit(0); // كود إغلاق التطبيق فوراً
-}
-
-- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
-    // للسماح للمستخدم باللعب إذا لم يلمس المنيو أو الزر
-    if (CGRectContainsPoint(self.floatingButton.frame, point) || (!self.mainMenuPanel.isHidden && CGRectContainsPoint(self.mainMenuPanel.frame, point))) {
-        return YES;
-    }
-    return NO;
+    exit(0);
 }
 
 @end
 
-// 4. تشغيل الأداة عند فتح أي تطبيق/لعبة
-static HasanyMenuWindow *menuWindow;
-
-%hook UIApplication
-
-- (void)applicationDidBecomeActive:(id)application {
+// 3. الخطوة الأهم: زرع الأداة داخل النافذة الرئيسية للعبة
+%hook UIWindow
+- (void)makeKeyAndVisible {
     %orig;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            menuWindow = [[HasanyMenuWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-        });
+    // ننتظر 3 ثواني بعد فتح اللعبة حتى تكمل تحميل ثم تظهر الدائرة
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [[HasanyMenuManager sharedManager] setupUIInWindow:self];
     });
 }
-
 %end
