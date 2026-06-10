@@ -1,9 +1,9 @@
-Package: com.hassany.protect
-Name: HassanyProtect
+Package: com.hasany.hipafake
+Name: H-IPA Menu
 Depends: mobilesubstrate
-Version: 1.0
+Version: 1.0.0
 Architecture: iphoneos-arm64
-Description: أداة حماية تطبيقات الحسني
-Maintainer: Hassany
-Author: Hassany
+Description: اداة وهمية احترافية للتسويق - متجر الحسني
+Maintainer: Hasany Store
+Author: Hasany Store
 Section: Tweaks
