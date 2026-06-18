@@ -17,11 +17,44 @@
             NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
             BOOL isVerified = [defaults boolForKey:PREF_KEY];
 
+            // 🛠️ الحل الذكي والمتوافق لجلب الـ keyWindow بدون أي تحذيرات أو أخطاء بناء
+            UIWindow *finalKeyWindow = nil;
+            
+            if (@available(iOS 13.0, *)) {
+                for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
+                    if (scene.activationState == UISceneActivationStateForegroundActive) {
+                        for (UIWindow *window in scene.windows) {
+                            if (window.isKeyWindow) {
+                                finalKeyWindow = window;
+                                break;
+                            }
+                        }
+                    }
+                    if (finalKeyWindow) break;
+                }
+            }
+            
+            // حل احتياطي في حال لم يعثر عليها بالأسلوب الحديث (مع تخطي التحذير)
+            if (!finalKeyWindow) {
+                #pragma clang diagnostic push
+                #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+                finalKeyWindow = [UIApplication sharedApplication].keyWindow;
+                #pragma clang diagnostic pop
+            }
+
+            // إذا لم يجد شيئاً، يأخذ أول نافذة متاحة في التطبيق كخيار أخير
+            if (!finalKeyWindow && [UIApplication sharedApplication].windows.count > 0) {
+                finalKeyWindow = [UIApplication sharedApplication].windows.firstObject;
+            }
+
             // البحث عن الواجهة الرئيسية لعرض الرسالة عليها
-            UIViewController *rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+            UIViewController *rootVC = finalKeyWindow.rootViewController;
             while (rootVC.presentedViewController) {
                 rootVC = rootVC.presentedViewController;
             }
+
+            // حماية إضافية: إذا لم تكن الواجهة جاهزة بعد، نخرج لتجنب الكراش
+            if (!rootVC) return;
 
             if (isVerified) {
                 // إذا كان المستخدم قد أدخل الكود مسبقاً، تظهر رسالة ترحيبية فقط
@@ -69,7 +102,7 @@
                 // زر القناة الرسمية
                 UIAlertAction *channelAction = [UIAlertAction actionWithTitle:@"القناة الرسمية" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
                     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/hassanyIPA"] options:@{} completionHandler:nil];
-                    exit(0); // اختياري: يغلق اللعبة عند الذهاب للتليجرام لضمان عدم تخطي الكود
+                    exit(0); 
                 }];
 
                 // زر المطور
