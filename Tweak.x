@@ -2,12 +2,12 @@
 #import <mach-o/dyld.h>
 #import <mach/mach.h>
 
-// دالة جلب عنوان الذاكرة
+// دالة جلب عنوان الذاكرة الأساسي للعبة
 uintptr_t get_base_address() {
     return (uintptr_t)_dyld_get_image_header(0);
 }
 
-// دالة التعديل على الذاكرة
+// دالة التعديل على الذاكرة (حقن قيم الهكس)
 void patch_memory(uintptr_t address, uint32_t data) {
     mach_port_t task = mach_task_self();
     vm_prot_t prot = VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY;
@@ -39,7 +39,6 @@ void patch_memory(uintptr_t address, uint32_t data) {
 }
 
 - (void)setupInView:(UIView *)parentView {
-    // لمنع تكرار إنشاء الزر إذا كان موجوداً بالفعل
     if (self.floatingButton.superview) return;
 
     // 1. إنشاء الزر العائم
@@ -53,7 +52,6 @@ void patch_memory(uintptr_t address, uint32_t data) {
     self.floatingButton.layer.borderWidth = 2.0;
     self.floatingButton.layer.borderColor = [UIColor colorWithRed:0.00 green:0.75 blue:1.00 alpha:1.00].CGColor;
     
-    // تفعيل السحب والضغط
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
     [self.floatingButton addGestureRecognizer:pan];
     [self.floatingButton addTarget:self action:@selector(toggleMenu) forControlEvents:UIControlEventTouchUpInside];
@@ -79,10 +77,10 @@ void patch_memory(uintptr_t address, uint32_t data) {
     [self.menuView.contentView addSubview:title];
     
     self.inputField = [[UITextField alloc] initWithFrame:CGRectMake(20, 65, 240, 45)];
-    self.inputField.placeholder = @" أدخل كمية الأموال هنا...";
+    self.inputField.placeholder = @"الأوفست مفعل تلقائياً...";
     self.inputField.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.1];
     self.inputField.textColor = [UIColor whiteColor];
-    self.inputField.keyboardType = UIKeyboardTypeNumberPad;
+    self.inputField.enabled = NO; // معطل لأن التعديل يتم على كود الأوفست مباشرة
     self.inputField.layer.cornerRadius = 10;
     self.inputField.layer.borderWidth = 1.0;
     self.inputField.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.2].CGColor;
@@ -111,7 +109,6 @@ void patch_memory(uintptr_t address, uint32_t data) {
     [parentView addSubview:self.menuView];
 }
 
-// دالة سحب الزر في الشاشة
 - (void)handlePan:(UIPanGestureRecognizer *)sender {
     UIView *view = sender.view;
     CGPoint translation = [sender translationInView:view.superview];
@@ -119,7 +116,6 @@ void patch_memory(uintptr_t address, uint32_t data) {
     [sender setTranslation:CGPointZero inView:view.superview];
 }
 
-// دالة إظهار وإخفاء القائمة
 - (void)toggleMenu {
     [self.inputField resignFirstResponder];
     BOOL isHidden = (self.menuView.alpha == 0);
@@ -128,26 +124,26 @@ void patch_memory(uintptr_t address, uint32_t data) {
     }];
 }
 
-// زر التفجير
+// تفعيل تعديل الذاكرة عبر الأوفست الثابت المكتشف
 - (void)applyHack {
     uintptr_t base = get_base_address();
+    // تغيير كود الـ Assembly ليعطي قيمة عالية جداً عند تنفيذ الأمر
     patch_memory(base + 0xaf634, 0x52800000); 
-    [self showSuccessBanner:@"تم تعديل الذاكرة بنجاح!"];
+    [self showSuccessBanner:@"تم تفعيل الهاك! اكسب كوين لتحديث الشاشة"];
 }
 
-// زر التجميد
+// تجميد القيمة (صنع أمر NOP لتخطي الخصم أو الزيادة)
 - (void)freezeHack {
     uintptr_t base = get_base_address();
-    patch_memory(base + 0xaf634, 0xD503201F);
+    patch_memory(base + 0xaf634, 0xD503201F); // أمر NOP بالـ ARM64
     [self showSuccessBanner:@"تم تجميد الفلوس بنجاح!"];
 }
 
-// دالة إظهار إشعار النجاح كـ Banner من الأعلى بدلاً من النوافذ التقليدية
 - (void)showSuccessBanner:(NSString *)msg {
-    [self toggleMenu]; // إغلاق القائمة
+    [self toggleMenu];
     
     UILabel *alert = [[UILabel alloc] initWithFrame:CGRectMake(0, -50, [UIScreen mainScreen].bounds.size.width, 50)];
-    alert.backgroundColor = [UIColor colorWithRed:0.0 green:0.75 blue:0.0 alpha:0.9]; // لون أخضر شفاف
+    alert.backgroundColor = [UIColor colorWithRed:0.0 green:0.75 blue:0.0 alpha:0.9];
     alert.textColor = [UIColor whiteColor];
     alert.text = msg;
     alert.textAlignment = NSTextAlignmentCenter;
@@ -156,11 +152,9 @@ void patch_memory(uintptr_t address, uint32_t data) {
     UIWindow *window = (UIWindow *)self.floatingButton.superview;
     if ([window isKindOfClass:[UIWindow class]] || [window isKindOfClass:[UIView class]]) {
         [window addSubview:alert];
-        // حركة نزول الإشعار من الأعلى
         [UIView animateWithDuration:0.5 animations:^{
             alert.frame = CGRectMake(0, 40, [UIScreen mainScreen].bounds.size.width, 50);
         } completion:^(BOOL finished) {
-            // بقاء الإشعار لثانيتين ثم صعوده
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
                 [UIView animateWithDuration:0.5 animations:^{
                     alert.frame = CGRectMake(0, -50, [UIScreen mainScreen].bounds.size.width, 50);
@@ -168,21 +162,17 @@ void patch_memory(uintptr_t address, uint32_t data) {
                     [alert removeFromSuperview];
                 }];
             });
-        }];
+        });
     }
 }
 @end
 
-// دالة التشغيل الذاتي بمجرد فتح اللعبة واستقرار الواجهة
-// دالة التشغيل الذاتي بمجرد فتح اللعبة واستقرار الواجهة
 %ctor {
     [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidBecomeActiveNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification * _Nonnull note) {
         
-        // ننتظر ثانيتين حتى تقوم اللعبة بتحميل كل رسوماتها وواجهتها
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             UIWindow *keyWindow = nil;
             
-            // محاولة جلب النافذة الأساسية للاصدارات الحديثة (iOS 13+)
             if (@available(iOS 13.0, *)) {
                 for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
                     if (scene.activationState == UISceneActivationStateForegroundActive) {
@@ -196,7 +186,6 @@ void patch_memory(uintptr_t address, uint32_t data) {
                 }
             }
             
-            // محاولة جلب النافذة للاصدارات الأقدم مع إيقاف تحذيرات المترجم (Compiler Warnings)
             if (!keyWindow) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -204,7 +193,6 @@ void patch_memory(uintptr_t address, uint32_t data) {
 #pragma clang diagnostic pop
             }
             
-            // إضافة زر H8 فوق الشاشة
             if (keyWindow) {
                 [[H8MenuManager sharedInstance] setupInView:keyWindow];
             }
