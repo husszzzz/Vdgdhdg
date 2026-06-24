@@ -2,12 +2,12 @@
 #import <mach-o/dyld.h>
 #import <mach/mach.h>
 
-// دالة جلب عنوان الذاكرة الأساسي للعبة
+// دالة جلب عنوان الذاكرة
 uintptr_t get_base_address() {
     return (uintptr_t)_dyld_get_image_header(0);
 }
 
-// دالة التعديل على الذاكرة (حقن قيم الهكس)
+// دالة التعديل على الذاكرة
 void patch_memory(uintptr_t address, uint32_t data) {
     mach_port_t task = mach_task_self();
     vm_prot_t prot = VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY;
@@ -80,7 +80,7 @@ void patch_memory(uintptr_t address, uint32_t data) {
     self.inputField.placeholder = @"الأوفست مفعل تلقائياً...";
     self.inputField.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.1];
     self.inputField.textColor = [UIColor whiteColor];
-    self.inputField.enabled = NO; // معطل لأن التعديل يتم على كود الأوفست مباشرة
+    self.inputField.enabled = NO;
     self.inputField.layer.cornerRadius = 10;
     self.inputField.layer.borderWidth = 1.0;
     self.inputField.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.2].CGColor;
@@ -124,23 +124,22 @@ void patch_memory(uintptr_t address, uint32_t data) {
     }];
 }
 
-// تفعيل تعديل الذاكرة عبر الأوفست الثابت المكتشف
+// تعديل الذاكرة بالأوفست الذي استخرجته من iGameGod
 - (void)applyHack {
     uintptr_t base = get_base_address();
-    // تغيير كود الـ Assembly ليعطي قيمة عالية جداً عند تنفيذ الأمر
     patch_memory(base + 0xaf634, 0x52800000); 
-    [self showSuccessBanner:@"تم تفعيل الهاك! اكسب كوين لتحديث الشاشة"];
+    [self showSuccessBanner:@"تم تعديل الذاكرة بنجاح!"];
 }
 
-// تجميد القيمة (صنع أمر NOP لتخطي الخصم أو الزيادة)
+// تجميد القيمة
 - (void)freezeHack {
     uintptr_t base = get_base_address();
-    patch_memory(base + 0xaf634, 0xD503201F); // أمر NOP بالـ ARM64
-    [self showSuccessBanner:@"تم تجميد الفلوس بنجاح!"];
+    patch_memory(base + 0xaf634, 0xD503201F);
+    [self showSuccessBanner:@"تم تجميد الأموال بنجاح!"];
 }
 
 - (void)showSuccessBanner:(NSString *)msg {
-    [self toggleMenu];
+    [self toggleMenu]; // إغلاق القائمة
     
     UILabel *alert = [[UILabel alloc] initWithFrame:CGRectMake(0, -50, [UIScreen mainScreen].bounds.size.width, 50)];
     alert.backgroundColor = [UIColor colorWithRed:0.0 green:0.75 blue:0.0 alpha:0.9];
@@ -149,8 +148,8 @@ void patch_memory(uintptr_t address, uint32_t data) {
     alert.textAlignment = NSTextAlignmentCenter;
     alert.font = [UIFont boldSystemFontOfSize:14];
     
-    UIWindow *window = (UIWindow *)self.floatingButton.superview;
-    if ([window isKindOfClass:[UIWindow class]] || [window isKindOfClass:[UIView class]]) {
+    UIView *window = self.floatingButton.superview;
+    if (window) {
         [window addSubview:alert];
         [UIView animateWithDuration:0.5 animations:^{
             alert.frame = CGRectMake(0, 40, [UIScreen mainScreen].bounds.size.width, 50);
@@ -162,7 +161,7 @@ void patch_memory(uintptr_t address, uint32_t data) {
                     [alert removeFromSuperview];
                 }];
             });
-        });
+        }]; // تم تصحيح الإغلاق هنا من }); إلى }];
     }
 }
 @end
@@ -171,7 +170,7 @@ void patch_memory(uintptr_t address, uint32_t data) {
     [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidBecomeActiveNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification * _Nonnull note) {
         
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            UIWindow *keyWindow = nil;
+            __block UIWindow *keyWindow = nil;
             
             if (@available(iOS 13.0, *)) {
                 for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
