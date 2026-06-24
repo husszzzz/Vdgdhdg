@@ -174,6 +174,7 @@ void patch_memory(uintptr_t address, uint32_t data) {
 @end
 
 // دالة التشغيل الذاتي بمجرد فتح اللعبة واستقرار الواجهة
+// دالة التشغيل الذاتي بمجرد فتح اللعبة واستقرار الواجهة
 %ctor {
     [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidBecomeActiveNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification * _Nonnull note) {
         
@@ -195,9 +196,12 @@ void patch_memory(uintptr_t address, uint32_t data) {
                 }
             }
             
-            // محاولة جلب النافذة للاصدارات الأقدم أو في حالة فشل الطريقة الأولى
+            // محاولة جلب النافذة للاصدارات الأقدم مع إيقاف تحذيرات المترجم (Compiler Warnings)
             if (!keyWindow) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
                 keyWindow = [UIApplication sharedApplication].keyWindow;
+#pragma clang diagnostic pop
             }
             
             // إضافة زر H8 فوق الشاشة
