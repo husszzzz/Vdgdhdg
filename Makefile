@@ -1,12 +1,11 @@
-TARGET := iphone:clang:latest:14.0
-INSTALL_TARGET_PROCESSES = SpringBoard
+TARGET := iphone:clang:latest:15.0
+ARCHS = arm64 arm64e
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = HIPAMenu
+TWEAK_NAME = Vgdhdhd
 
-HIPAMenu_FILES = Tweak.x
-HIPAMenu_CFLAGS = -fobjc-arc
-HIPAMenu_FRAMEWORKS = UIKit Foundation CoreGraphics
+Vgdhdhd_FILES = Tweak.x
+Vgdhdhd_FRAMEWORKS = UIKit CoreGraphics QuartzCore
 
-include $(THEOS_MAKE_PATH)/tweak.mk
+include $(THEOS)/makefiles/tweak.mk
