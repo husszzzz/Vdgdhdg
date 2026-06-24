@@ -2,105 +2,82 @@
 #import <mach-o/dyld.h>
 #import <mach/mach.h>
 
-// دالة لجلب عنوان اللعبة الأساسي في الذاكرة (Base Address)
+// دالة جلب عنوان الذاكرة
 uintptr_t get_base_address() {
     return (uintptr_t)_dyld_get_image_header(0);
 }
 
-// دالة احترافية للكتابة على الذاكرة وتعديل الأوفست (Memory Patching)
+// دالة التعديل على الذاكرة
 void patch_memory(uintptr_t address, uint32_t data) {
     mach_port_t task = mach_task_self();
     vm_prot_t prot = VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY;
     
-    // السماح بالكتابة على الصفحة الحمية في الذاكرة
     if (vm_protect(task, (vm_address_t)address, sizeof(data), FALSE, prot) == KERN_SUCCESS) {
         *(volatile uint32_t *)address = data;
-        // إعادة حماية الصفحة لوضعها الأصلي
         vm_protect(task, (vm_address_t)address, sizeof(data), FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
     }
 }
 
-// تعريف واجهات القائمة العائمة
-@interface H8FloatingMenu : UIWindow
-@property (nonatomic, strong) UIButton *menuButton;
+// مدير قائمة H8
+@interface H8MenuManager : NSObject
+@property (nonatomic, strong) UIButton *floatingButton;
 @property (nonatomic, strong) UIVisualEffectView *menuView;
 @property (nonatomic, strong) UITextField *inputField;
 + (instancetype)sharedInstance;
+- (void)setupInView:(UIView *)parentView;
 @end
 
-@implementation H8FloatingMenu
+@implementation H8MenuManager
 
 + (instancetype)sharedInstance {
-    static H8FloatingMenu *sharedInstance = nil;
+    static H8MenuManager *shared = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        sharedInstance = [[self alloc] initWithFrame:[UIScreen mainScreen].bounds];
+        shared = [[self alloc] init];
     });
-    return sharedInstance;
+    return shared;
 }
 
-- (instancetype)initWithFrame:(CGRect)frame {
-    self = [super initWithFrame:frame];
-    if (self) {
-        self.windowLevel = UIWindowLevelAlert + 1;
-        self.hidden = NO;
-        self.backgroundColor = [UIColor clearColor];
-        [self setRootViewController:[[UIViewController alloc] init]];
-        
-        [self createFloatingButton];
-        [self createSleekMenu];
-    }
-    return self;
-}
+- (void)setupInView:(UIView *)parentView {
+    // لمنع تكرار إنشاء الزر إذا كان موجوداً بالفعل
+    if (self.floatingButton.superview) return;
 
-// 1. تصميم الدائرة العائمة الاحترافية H8
-- (void)createFloatingButton {
-    self.menuButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    self.menuButton.frame = CGRectMake(30, 200, 60, 60);
-    self.menuButton.backgroundColor = [UIColor colorWithRed:0.07 green:0.07 blue:0.07 alpha:0.85];
-    [self.menuButton setTitle:@"H8" forState:UIControlStateNormal];
-    self.menuButton.titleLabel.font = [UIFont boldSystemFontOfSize:18];
-    [self.menuButton setTitleColor:[UIColor colorWithRed:0.00 green:0.75 blue:1.00 alpha:1.00] forState:UIControlStateNormal]; // لون نيون أزرق
+    // 1. إنشاء الزر العائم
+    self.floatingButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    self.floatingButton.frame = CGRectMake(30, 100, 60, 60);
+    self.floatingButton.backgroundColor = [UIColor colorWithRed:0.07 green:0.07 blue:0.07 alpha:0.85];
+    [self.floatingButton setTitle:@"H8" forState:UIControlStateNormal];
+    self.floatingButton.titleLabel.font = [UIFont boldSystemFontOfSize:18];
+    [self.floatingButton setTitleColor:[UIColor colorWithRed:0.00 green:0.75 blue:1.00 alpha:1.00] forState:UIControlStateNormal];
+    self.floatingButton.layer.cornerRadius = 30;
+    self.floatingButton.layer.borderWidth = 2.0;
+    self.floatingButton.layer.borderColor = [UIColor colorWithRed:0.00 green:0.75 blue:1.00 alpha:1.00].CGColor;
     
-    // تصميم دائري مع حواف مضيئة وظل احترافي
-    self.menuButton.layer.cornerRadius = 30;
-    self.menuButton.layer.borderWidth = 2.0;
-    self.menuButton.layer.borderColor = [UIColor colorWithRed:0.00 green:0.75 blue:1.00 alpha:1.00].CGColor;
-    self.menuButton.layer.shadowColor = [UIColor colorWithRed:0.00 green:0.75 blue:1.00 alpha:1.00].CGColor;
-    self.menuButton.layer.shadowOffset = CGSizeMake(0, 0);
-    self.menuButton.layer.shadowOpacity = 0.8;
-    self.menuButton.layer.shadowRadius = 8;
+    // تفعيل السحب والضغط
+    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    [self.floatingButton addGestureRecognizer:pan];
+    [self.floatingButton addTarget:self action:@selector(toggleMenu) forControlEvents:UIControlEventTouchUpInside];
     
-    // إضافة إيماءة السحب (Drag) والضغط (Tap)
-    UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
-    [self.menuButton addGestureRecognizer:panGesture];
-    [self.menuButton addTarget:self action:@selector(toggleMenu) forControlEvents:UIControlEventTouchUpInside];
-    
-    [self addSubview:self.menuButton];
-}
+    [parentView addSubview:self.floatingButton];
 
-// 2. تصميم القائمة الزجاجية الاحترافية
-- (void)createSleekMenu {
-    // تأثير الضباب الزجاجي المظلم (Dark Blur)
-    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
-    self.menuView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+    // 2. إنشاء القائمة الزجاجية
+    UIBlurEffect *blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+    self.menuView = [[UIVisualEffectView alloc] initWithEffect:blur];
     self.menuView.frame = CGRectMake(0, 0, 280, 240);
-    self.menuView.center = self.center;
+    self.menuView.center = parentView.center;
     self.menuView.layer.cornerRadius = 20;
     self.menuView.layer.masksToBounds = YES;
     self.menuView.layer.borderWidth = 1.0;
     self.menuView.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.15].CGColor;
-    self.menuView.alpha = 0; // مخفية في البداية
+    self.menuView.alpha = 0.0;
     
-    // عنوان القائمة
-    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 15, 280, 25)];
-    titleLabel.text = @"H8 PREMIUM MENU";
-    titleLabel.textColor = [UIColor whiteColor];
-    titleLabel.font = [UIFont boldSystemFontOfSize:16];
-    titleLabel.textAlignment = NSTextAlignmentCenter;
-    [self.menuView.contentView addSubview:titleLabel];
+    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 15, 280, 25)];
+    title.text = @"H8 PREMIUM MENU";
+    title.textColor = [UIColor whiteColor];
+    title.font = [UIFont boldSystemFontOfSize:16];
+    title.textAlignment = NSTextAlignmentCenter;
+    [self.menuView.contentView addSubview:title];
     
-    // حقل إدخال الأرقام بشكل ديزاين مودرن
     self.inputField = [[UITextField alloc] initWithFrame:CGRectMake(20, 65, 240, 45)];
     self.inputField.placeholder = @" أدخل كمية الأموال هنا...";
     self.inputField.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.1];
@@ -110,96 +87,123 @@ void patch_memory(uintptr_t address, uint32_t data) {
     self.inputField.layer.borderWidth = 1.0;
     self.inputField.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.2].CGColor;
     self.inputField.textAlignment = NSTextAlignmentCenter;
-    
-    // تغيير لون الـ Placeholder للون فاتح يتماشى مع التصميم
-    self.inputField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:self.inputField.placeholder attributes:@{NSForegroundColorAttributeName: [UIColor lightGrayColor]}];
     [self.menuView.contentView addSubview:self.inputField];
     
-    // زر التفعيل "بممم تتغير الفلوس"
-    UIButton *actionButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    actionButton.frame = CGRectMake(20, 125, 240, 45);
-    actionButton.backgroundColor = [UIColor colorWithRed:0.00 green:0.60 blue:1.00 alpha:1.00];
-    [actionButton setTitle:@"تفعيل الهاك (BOOM)" forState:UIControlStateNormal];
-    actionButton.titleLabel.font = [UIFont boldSystemFontOfSize:15];
-    actionButton.layer.cornerRadius = 10;
-    [actionButton addTarget:self action:@selector(applyHackPressed) forControlEvents:UIControlEventTouchUpInside];
-    [self.menuView.contentView addSubview:actionButton];
+    UIButton *applyBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    applyBtn.frame = CGRectMake(20, 125, 240, 45);
+    applyBtn.backgroundColor = [UIColor colorWithRed:0.00 green:0.60 blue:1.00 alpha:1.00];
+    [applyBtn setTitle:@"تفعيل الهاك (BOOM)" forState:UIControlStateNormal];
+    applyBtn.layer.cornerRadius = 10;
+    [applyBtn addTarget:self action:@selector(applyHack) forControlEvents:UIControlEventTouchUpInside];
+    [self.menuView.contentView addSubview:applyBtn];
     
-    // زر تجميد الأموال (Freeze) لمنع النقصان
-    UIButton *freezeButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    freezeButton.frame = CGRectMake(20, 180, 240, 45);
-    freezeButton.backgroundColor = [UIColor colorWithRed:0.15 green:0.15 blue:0.15 alpha:1.0];
-    [freezeButton setTitle:@"تجميد الأموال (Freeze)" forState:UIControlStateNormal];
-    freezeButton.titleLabel.font = [UIFont boldSystemFontOfSize:14];
-    freezeButton.layer.cornerRadius = 10;
-    freezeButton.layer.borderWidth = 1.0;
-    freezeButton.layer.borderColor = [UIColor colorWithRed:1.00 green:0.30 blue:0.30 alpha:1.0].CGColor;
-    [freezeButton setTitleColor:[UIColor colorWithRed:1.00 green:0.30 blue:0.30 alpha:1.0] forState:UIControlStateNormal];
-    [freezeButton addTarget:self action:@selector(freezeHackPressed) forControlEvents:UIControlEventTouchUpInside];
-    [self.menuView.contentView addSubview:freezeButton];
+    UIButton *freezeBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    freezeBtn.frame = CGRectMake(20, 180, 240, 45);
+    freezeBtn.backgroundColor = [UIColor colorWithRed:0.15 green:0.15 blue:0.15 alpha:1.0];
+    [freezeBtn setTitle:@"تجميد الأموال (Freeze)" forState:UIControlStateNormal];
+    freezeBtn.layer.cornerRadius = 10;
+    freezeBtn.layer.borderWidth = 1.0;
+    freezeBtn.layer.borderColor = [UIColor colorWithRed:1.00 green:0.30 blue:0.30 alpha:1.0].CGColor;
+    [freezeBtn setTitleColor:[UIColor colorWithRed:1.00 green:0.30 blue:0.30 alpha:1.0] forState:UIControlStateNormal];
+    [freezeBtn addTarget:self action:@selector(freezeHack) forControlEvents:UIControlEventTouchUpInside];
+    [self.menuView.contentView addSubview:freezeBtn];
     
-    [self addSubview:self.menuView];
+    [parentView addSubview:self.menuView];
 }
 
-// تحريك الأيقونة العائمة عند السحب بيدك
+// دالة سحب الزر في الشاشة
 - (void)handlePan:(UIPanGestureRecognizer *)sender {
-    CGPoint translation = [sender translationInView:self];
-    sender.view.center = CGPointMake(sender.view.center.x + translation.x, sender.view.center.y + translation.y);
-    [sender setTranslation:CGPointZero inView:self];
+    UIView *view = sender.view;
+    CGPoint translation = [sender translationInView:view.superview];
+    view.center = CGPointMake(view.center.x + translation.x, view.center.y + translation.y);
+    [sender setTranslation:CGPointZero inView:view.superview];
 }
 
-// إظهار وإخفاء القائمة عند الضغط على H8 بطريقة ناعمة (Animation)
+// دالة إظهار وإخفاء القائمة
 - (void)toggleMenu {
-    [self endEditing:YES]; // إخفاء الكيبورد تلقائياً
+    [self.inputField resignFirstResponder];
     BOOL isHidden = (self.menuView.alpha == 0);
     [UIView animateWithDuration:0.3 animations:^{
         self.menuView.alpha = isHidden ? 1.0 : 0.0;
     }];
 }
 
-// عند الضغط على زر تفعيل الهاك
-- (void)applyHackPressed {
-    NSString *inputValue = self.inputField.text;
-    if (inputValue.length == 0) return;
-    
+// زر التفجير
+- (void)applyHack {
     uintptr_t base = get_base_address();
-    uintptr_t offsetAddress = base + 0xaf634; // الأوفست الخاص بك
-    
-    // كود مخصص لتعديل الأمر البرمجي ليقوم باعطائك الحد الأقصى دائماً عند تفعيله
-    // الأمر البرمجي الافتراضي لـ ARM64 يتم استبداله بـ MOV W0, #الرقم (هنا نضع قيمة افتراضية كبرى)
-    patch_memory(offsetAddress, 0x52800000); // مثال لأمر تمرير قيمة برمجية كبرى
-    
-    // إشعار نجاح احترافي داخل اللعبة
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"H8 Status" message:@"تم تعديل الذاكرة بنجاح! قم بزيادة أموالك الآن داخل اللعبة لتشاهد النتيجة." preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleDefault handler:nil]];
-    [[self rootViewController] presentViewController:alert animated:YES completion:nil];
-    
-    [self toggleMenu];
+    patch_memory(base + 0xaf634, 0x52800000); 
+    [self showSuccessBanner:@"تم تعديل الذاكرة بنجاح!"];
 }
 
-// عند الضغط على زر تجميد الفلوس (يمنع نقصانها نهائياً)
-- (void)freezeHackPressed {
+// زر التجميد
+- (void)freezeHack {
     uintptr_t base = get_base_address();
-    uintptr_t offsetAddress = base + 0xaf634;
-    
-    // استبدال كود الـ Write بـ أمر فارغ NOP في المعالجات ARM64 (الـ NOP الثابت هو 0xD503201F)
-    patch_memory(offsetAddress, 0xD503201F);
-    
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"H8 Status" message:@"تم تجميد الفلوس بنجاح! لن تنقص أموالك بعد الآن." preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"كفو" style:UIAlertActionStyleDefault handler:nil]];
-    [[self rootViewController] presentViewController:alert animated:YES completion:nil];
-    
-    [self toggleMenu];
+    patch_memory(base + 0xaf634, 0xD503201F);
+    [self showSuccessBanner:@"تم تجميد الفلوس بنجاح!"];
 }
 
+// دالة إظهار إشعار النجاح كـ Banner من الأعلى بدلاً من النوافذ التقليدية
+- (void)showSuccessBanner:(NSString *)msg {
+    [self toggleMenu]; // إغلاق القائمة
+    
+    UILabel *alert = [[UILabel alloc] initWithFrame:CGRectMake(0, -50, [UIScreen mainScreen].bounds.size.width, 50)];
+    alert.backgroundColor = [UIColor colorWithRed:0.0 green:0.75 blue:0.0 alpha:0.9]; // لون أخضر شفاف
+    alert.textColor = [UIColor whiteColor];
+    alert.text = msg;
+    alert.textAlignment = NSTextAlignmentCenter;
+    alert.font = [UIFont boldSystemFontOfSize:14];
+    
+    UIWindow *window = (UIWindow *)self.floatingButton.superview;
+    if ([window isKindOfClass:[UIWindow class]] || [window isKindOfClass:[UIView class]]) {
+        [window addSubview:alert];
+        // حركة نزول الإشعار من الأعلى
+        [UIView animateWithDuration:0.5 animations:^{
+            alert.frame = CGRectMake(0, 40, [UIScreen mainScreen].bounds.size.width, 50);
+        } completion:^(BOOL finished) {
+            // بقاء الإشعار لثانيتين ثم صعوده
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [UIView animateWithDuration:0.5 animations:^{
+                    alert.frame = CGRectMake(0, -50, [UIScreen mainScreen].bounds.size.width, 50);
+                } completion:^(BOOL finished) {
+                    [alert removeFromSuperview];
+                }];
+            });
+        }];
+    }
+}
 @end
 
-// تفعيل القائمة العائمة بمجرد تشغيل اللعبة تلقائياً
-%hook UIApplication
-- (void)finishedLaunching {
-    %orig;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [H8FloatingMenu sharedInstance];
-    });
+// دالة التشغيل الذاتي بمجرد فتح اللعبة واستقرار الواجهة
+%ctor {
+    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidBecomeActiveNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification * _Nonnull note) {
+        
+        // ننتظر ثانيتين حتى تقوم اللعبة بتحميل كل رسوماتها وواجهتها
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            UIWindow *keyWindow = nil;
+            
+            // محاولة جلب النافذة الأساسية للاصدارات الحديثة (iOS 13+)
+            if (@available(iOS 13.0, *)) {
+                for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
+                    if (scene.activationState == UISceneActivationStateForegroundActive) {
+                        for (UIWindow *window in scene.windows) {
+                            if (window.isKeyWindow) {
+                                keyWindow = window;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // محاولة جلب النافذة للاصدارات الأقدم أو في حالة فشل الطريقة الأولى
+            if (!keyWindow) {
+                keyWindow = [UIApplication sharedApplication].keyWindow;
+            }
+            
+            // إضافة زر H8 فوق الشاشة
+            if (keyWindow) {
+                [[H8MenuManager sharedInstance] setupInView:keyWindow];
+            }
+        });
+    }];
 }
-%end
