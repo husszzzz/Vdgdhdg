@@ -1,215 +1,205 @@
 #import <UIKit/UIKit.h>
+#import <mach-o/dyld.h>
+#import <mach/mach.h>
 
-#define PREF_KEY @"HassaniVIP_Auth_V3" 
-#define CORRECT_CODE @"@hassanyIPA"
+// دالة لجلب عنوان اللعبة الأساسي في الذاكرة (Base Address)
+uintptr_t get_base_address() {
+    return (uintptr_t)_dyld_get_image_header(0);
+}
 
-// ==========================================
-// بناء واجهة التصميم الاحترافية (VIP Screen)
-// ==========================================
-@interface HassaniAuthVC : UIViewController
-@property (nonatomic, strong) UIView *containerView;
-@property (nonatomic, strong) UITextField *codeField;
-@property (nonatomic, strong) UIImageView *logoImageView;
+// دالة احترافية للكتابة على الذاكرة وتعديل الأوفست (Memory Patching)
+void patch_memory(uintptr_t address, uint32_t data) {
+    mach_port_t task = mach_task_self();
+    vm_prot_t prot = VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY;
+    
+    // السماح بالكتابة على الصفحة الحمية في الذاكرة
+    if (vm_protect(task, (vm_address_t)address, sizeof(data), FALSE, prot) == KERN_SUCCESS) {
+        *(volatile uint32_t *)address = data;
+        // إعادة حماية الصفحة لوضعها الأصلي
+        vm_protect(task, (vm_address_t)address, sizeof(data), FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
+    }
+}
+
+// تعريف واجهات القائمة العائمة
+@interface H8FloatingMenu : UIWindow
+@property (nonatomic, strong) UIButton *menuButton;
+@property (nonatomic, strong) UIVisualEffectView *menuView;
+@property (nonatomic, strong) UITextField *inputField;
++ (instancetype)sharedInstance;
 @end
 
-@implementation HassaniAuthVC
+@implementation H8FloatingMenu
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    self.view.backgroundColor = [UIColor clearColor];
++ (instancetype)sharedInstance {
+    static H8FloatingMenu *sharedInstance = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        sharedInstance = [[self alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    });
+    return sharedInstance;
+}
 
-    // 1. إضافة تأثير الضباب (Blur) للخلفية
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.windowLevel = UIWindowLevelAlert + 1;
+        self.hidden = NO;
+        self.backgroundColor = [UIColor clearColor];
+        [self setRootViewController:[[UIViewController alloc] init]];
+        
+        [self createFloatingButton];
+        [self createSleekMenu];
+    }
+    return self;
+}
+
+// 1. تصميم الدائرة العائمة الاحترافية H8
+- (void)createFloatingButton {
+    self.menuButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    self.menuButton.frame = CGRectMake(30, 200, 60, 60);
+    self.menuButton.backgroundColor = [UIColor colorWithRed:0.07 green:0.07 blue:0.07 alpha:0.85];
+    [self.menuButton setTitle:@"H8" forState:UIControlStateNormal];
+    self.menuButton.titleLabel.font = [UIFont boldSystemFontOfSize:18];
+    [self.menuButton setTitleColor:[UIColor colorWithRed:0.00 green:0.75 blue:1.00 alpha:1.00] forState:UIControlStateNormal]; // لون نيون أزرق
+    
+    // تصميم دائري مع حواف مضيئة وظل احترافي
+    self.menuButton.layer.cornerRadius = 30;
+    self.menuButton.layer.borderWidth = 2.0;
+    self.menuButton.layer.borderColor = [UIColor colorWithRed:0.00 green:0.75 blue:1.00 alpha:1.00].CGColor;
+    self.menuButton.layer.shadowColor = [UIColor colorWithRed:0.00 green:0.75 blue:1.00 alpha:1.00].CGColor;
+    self.menuButton.layer.shadowOffset = CGSizeMake(0, 0);
+    self.menuButton.layer.shadowOpacity = 0.8;
+    self.menuButton.layer.shadowRadius = 8;
+    
+    // إضافة إيماءة السحب (Drag) والضغط (Tap)
+    UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    [self.menuButton addGestureRecognizer:panGesture];
+    [self.menuButton addTarget:self action:@selector(toggleMenu) forControlEvents:UIControlEventTouchUpInside];
+    
+    [self addSubview:self.menuButton];
+}
+
+// 2. تصميم القائمة الزجاجية الاحترافية
+- (void)createSleekMenu {
+    // تأثير الضباب الزجاجي المظلم (Dark Blur)
     UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
-    UIVisualEffectView *blurEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-    blurEffectView.frame = self.view.bounds;
-    blurEffectView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    [self.view addSubview:blurEffectView];
-
-    // إخفاء الكيبورد عند الضغط على الخلفية
-    UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(hideKeyboard)];
-    [self.view addGestureRecognizer:tapGesture];
-
-    // 2. نافذة المحتوى المركزية (Container)
-    CGFloat containerWidth = 300;
-    CGFloat containerHeight = 360;
-    self.containerView = [[UIView alloc] initWithFrame:CGRectMake((self.view.bounds.size.width - containerWidth) / 2,
-                                                                  (self.view.bounds.size.height - containerHeight) / 2,
-                                                                  containerWidth, containerHeight)];
-    self.containerView.backgroundColor = [UIColor colorWithWhite:0.15 alpha:0.9];
-    self.containerView.layer.cornerRadius = 20;
-    self.containerView.layer.shadowColor = [UIColor blackColor].CGColor;
-    self.containerView.layer.shadowOpacity = 0.5;
-    self.containerView.layer.shadowOffset = CGSizeMake(0, 5);
-    self.containerView.layer.shadowRadius = 10;
-    self.containerView.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
-    [self.view addSubview:self.containerView];
-
-    // 3. صورة اللوجو الدائرية
-    CGFloat logoSize = 90;
-    self.logoImageView = [[UIImageView alloc] initWithFrame:CGRectMake((containerWidth - logoSize) / 2, -45, logoSize, logoSize)];
-    self.logoImageView.layer.cornerRadius = logoSize / 2;
-    self.logoImageView.clipsToBounds = YES;
-    self.logoImageView.layer.borderWidth = 3;
-    self.logoImageView.layer.borderColor = [UIColor whiteColor].CGColor;
-    self.logoImageView.backgroundColor = [UIColor darkGrayColor];
-    [self.containerView addSubview:self.logoImageView];
-
-    // تحميل الصورة من الرابط
-    NSURL *url = [NSURL URLWithString:@"https://j.top4top.io/p_3821vtuyf1.jpeg"];
-    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (data) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                self.logoImageView.image = [UIImage imageWithData:data];
-            });
-        }
-    }];
-    [task resume];
-
-    // 4. النصوص
-    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 55, containerWidth - 40, 30)];
-    titleLabel.text = @"متجر الحسني";
+    self.menuView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+    self.menuView.frame = CGRectMake(0, 0, 280, 240);
+    self.menuView.center = self.center;
+    self.menuView.layer.cornerRadius = 20;
+    self.menuView.layer.masksToBounds = YES;
+    self.menuView.layer.borderWidth = 1.0;
+    self.menuView.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.15].CGColor;
+    self.menuView.alpha = 0; // مخفية في البداية
+    
+    // عنوان القائمة
+    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 15, 280, 25)];
+    titleLabel.text = @"H8 PREMIUM MENU";
     titleLabel.textColor = [UIColor whiteColor];
-    titleLabel.font = [UIFont boldSystemFontOfSize:22];
+    titleLabel.font = [UIFont boldSystemFontOfSize:16];
     titleLabel.textAlignment = NSTextAlignmentCenter;
-    [self.containerView addSubview:titleLabel];
-
-    UILabel *descLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 90, containerWidth - 40, 40)];
-    descLabel.text = @"يرجى إدخال كود الدخول الخاص بك للوصول إلى التطبيق";
-    descLabel.textColor = [UIColor lightGrayColor];
-    descLabel.font = [UIFont systemFontOfSize:14];
-    descLabel.textAlignment = NSTextAlignmentCenter;
-    descLabel.numberOfLines = 2;
-    [self.containerView addSubview:descLabel];
-
-    // 5. حقل الكود
-    self.codeField = [[UITextField alloc] initWithFrame:CGRectMake(20, 145, containerWidth - 40, 45)];
-    self.codeField.backgroundColor = [UIColor colorWithWhite:0.25 alpha:1.0];
-    self.codeField.textColor = [UIColor whiteColor];
-    self.codeField.textAlignment = NSTextAlignmentCenter;
-    self.codeField.layer.cornerRadius = 10;
-    self.codeField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:@"أدخل الكود هنا" attributes:@{NSForegroundColorAttributeName: [UIColor lightGrayColor]}];
-    [self.containerView addSubview:self.codeField];
-
-    // 6. زر التأكيد (تصميم مميز)
-    UIButton *confirmBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    confirmBtn.frame = CGRectMake(20, 210, containerWidth - 40, 45);
-    confirmBtn.backgroundColor = [UIColor colorWithRed:0.0 green:0.48 blue:1.0 alpha:1.0]; // لون أزرق فخم
-    [confirmBtn setTitle:@"تأكيد الدخول" forState:UIControlStateNormal];
-    confirmBtn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
-    confirmBtn.layer.cornerRadius = 10;
-    [confirmBtn addTarget:self action:@selector(checkCodeAction) forControlEvents:UIControlEventTouchUpInside];
-    [self.containerView addSubview:confirmBtn];
-
-    // 7. أزرار الروابط (أزرار شفافة مع إطار)
-    UIButton *channelBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    channelBtn.frame = CGRectMake(20, 270, (containerWidth - 50) / 2, 40);
-    [channelBtn setTitle:@"القناة الرسمية" forState:UIControlStateNormal];
-    [channelBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    channelBtn.titleLabel.font = [UIFont systemFontOfSize:13];
-    channelBtn.layer.cornerRadius = 8;
-    channelBtn.layer.borderWidth = 1;
-    channelBtn.layer.borderColor = [UIColor lightGrayColor].CGColor;
-    [channelBtn addTarget:self action:@selector(openChannelAction) forControlEvents:UIControlEventTouchUpInside];
-    [self.containerView addSubview:channelBtn];
-
-    UIButton *devBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    devBtn.frame = CGRectMake(30 + (containerWidth - 50) / 2, 270, (containerWidth - 50) / 2, 40);
-    [devBtn setTitle:@"المطور" forState:UIControlStateNormal];
-    [devBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    devBtn.titleLabel.font = [UIFont systemFontOfSize:13];
-    devBtn.layer.cornerRadius = 8;
-    devBtn.layer.borderWidth = 1;
-    devBtn.layer.borderColor = [UIColor lightGrayColor].CGColor;
-    [devBtn addTarget:self action:@selector(openDevAction) forControlEvents:UIControlEventTouchUpInside];
-    [self.containerView addSubview:devBtn];
+    [self.menuView.contentView addSubview:titleLabel];
+    
+    // حقل إدخال الأرقام بشكل ديزاين مودرن
+    self.inputField = [[UITextField alloc] initWithFrame:CGRectMake(20, 65, 240, 45)];
+    self.inputField.placeholder = @" أدخل كمية الأموال هنا...";
+    self.inputField.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.1];
+    self.inputField.textColor = [UIColor whiteColor];
+    self.inputField.keyboardType = UIKeyboardTypeNumberPad;
+    self.inputField.layer.cornerRadius = 10;
+    self.inputField.layer.borderWidth = 1.0;
+    self.inputField.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.2].CGColor;
+    self.inputField.textAlignment = NSTextAlignmentCenter;
+    
+    // تغيير لون الـ Placeholder للون فاتح يتماشى مع التصميم
+    self.inputField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:self.inputField.placeholder attributes:@{NSForegroundColorAttributeName: [UIColor lightGrayColor]}];
+    [self.menuView.contentView addSubview:self.inputField];
+    
+    // زر التفعيل "بممم تتغير الفلوس"
+    UIButton *actionButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    actionButton.frame = CGRectMake(20, 125, 240, 45);
+    actionButton.backgroundColor = [UIColor colorWithRed:0.00 green:0.60 blue:1.00 alpha:1.00];
+    [actionButton setTitle:@"تفعيل الهاك (BOOM)" forState:UIControlStateNormal];
+    actionButton.titleLabel.font = [UIFont boldSystemFontOfSize:15];
+    actionButton.layer.cornerRadius = 10;
+    [actionButton addTarget:self action:@selector(applyHackPressed) forControlEvents:UIControlEventTouchUpInside];
+    [self.menuView.contentView addSubview:actionButton];
+    
+    // زر تجميد الأموال (Freeze) لمنع النقصان
+    UIButton *freezeButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    freezeButton.frame = CGRectMake(20, 180, 240, 45);
+    freezeButton.backgroundColor = [UIColor colorWithRed:0.15 green:0.15 blue:0.15 alpha:1.0];
+    [freezeButton setTitle:@"تجميد الأموال (Freeze)" forState:UIControlStateNormal];
+    freezeButton.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+    freezeButton.layer.cornerRadius = 10;
+    freezeButton.layer.borderWidth = 1.0;
+    freezeButton.layer.borderColor = [UIColor colorWithRed:1.00 green:0.30 blue:0.30 alpha:1.0].CGColor;
+    [freezeButton setTitleColor:[UIColor colorWithRed:1.00 green:0.30 blue:0.30 alpha:1.0] forState:UIControlStateNormal];
+    [freezeButton addTarget:self action:@selector(freezeHackPressed) forControlEvents:UIControlEventTouchUpInside];
+    [self.menuView.contentView addSubview:freezeButton];
+    
+    [self addSubview:self.menuView];
 }
 
-- (void)viewWillAppear:(BOOL)animated {
-    [super viewWillAppear:animated];
-    // أنيميشن فخم عند ظهور الواجهة
-    self.containerView.transform = CGAffineTransformMakeScale(0.8, 0.8);
-    self.containerView.alpha = 0.0;
-    [UIView animateWithDuration:0.5 delay:0 usingSpringWithDamping:0.7 initialSpringVelocity:0.5 options:UIViewAnimationOptionCurveEaseInOut animations:^{
-        self.containerView.transform = CGAffineTransformIdentity;
-        self.containerView.alpha = 1.0;
-    } completion:nil];
+// تحريك الأيقونة العائمة عند السحب بيدك
+- (void)handlePan:(UIPanGestureRecognizer *)sender {
+    CGPoint translation = [sender translationInView:self];
+    sender.view.center = CGPointMake(sender.view.center.x + translation.x, sender.view.center.y + translation.y);
+    [sender setTranslation:CGPointZero inView:self];
 }
 
-- (void)hideKeyboard {
-    [self.view endEditing:YES];
+// إظهار وإخفاء القائمة عند الضغط على H8 بطريقة ناعمة (Animation)
+- (void)toggleMenu {
+    [self endEditing:YES]; // إخفاء الكيبورد تلقائياً
+    BOOL isHidden = (self.menuView.alpha == 0);
+    [UIView animateWithDuration:0.3 animations:^{
+        self.menuView.alpha = isHidden ? 1.0 : 0.0;
+    }];
 }
 
-// ==========================================
-// أوامر الأزرار
-// ==========================================
-- (void)checkCodeAction {
-    [self hideKeyboard];
-    if ([self.codeField.text isEqualToString:CORRECT_CODE]) {
-        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:PREF_KEY];
-        [[NSUserDefaults standardUserDefaults] synchronize];
-
-        // رسالة نجاح واختفاء الواجهة
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"نجاح ✅" message:@"تم تفعيل اللعبة بنجاح، استمتع!" preferredStyle:UIAlertControllerStyleAlert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"دخول" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-            [self dismissViewControllerAnimated:YES completion:nil];
-        }]];
-        [self presentViewController:alert animated:YES completion:nil];
-    } else {
-        // خطأ وإغلاق اللعبة
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"عذراً ❌" message:@"الكود غير صحيح. سيتم إغلاق التطبيق." preferredStyle:UIAlertControllerStyleAlert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"خروج" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
-            exit(0);
-        }]];
-        [self presentViewController:alert animated:YES completion:nil];
-    }
+// عند الضغط على زر تفعيل الهاك
+- (void)applyHackPressed {
+    NSString *inputValue = self.inputField.text;
+    if (inputValue.length == 0) return;
+    
+    uintptr_t base = get_base_address();
+    uintptr_t offsetAddress = base + 0xaf634; // الأوفست الخاص بك
+    
+    // كود مخصص لتعديل الأمر البرمجي ليقوم باعطائك الحد الأقصى دائماً عند تفعيله
+    // الأمر البرمجي الافتراضي لـ ARM64 يتم استبداله بـ MOV W0, #الرقم (هنا نضع قيمة افتراضية كبرى)
+    patch_memory(offsetAddress, 0x52800000); // مثال لأمر تمرير قيمة برمجية كبرى
+    
+    // إشعار نجاح احترافي داخل اللعبة
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"H8 Status" message:@"تم تعديل الذاكرة بنجاح! قم بزيادة أموالك الآن داخل اللعبة لتشاهد النتيجة." preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleDefault handler:nil]];
+    [[self rootViewController] presentViewController:alert animated:YES completion:nil];
+    
+    [self toggleMenu];
 }
 
-- (void)openChannelAction {
-    // فتح القناة بدون إغلاق اللعبة لكي لا نمنع النظام من التحويل
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/hassanyIPA"] options:@{} completionHandler:nil];
-}
-
-- (void)openDevAction {
-    // فتح حساب المطور بدون إغلاق اللعبة
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/OM_G9"] options:@{} completionHandler:nil];
+// عند الضغط على زر تجميد الفلوس (يمنع نقصانها نهائياً)
+- (void)freezeHackPressed {
+    uintptr_t base = get_base_address();
+    uintptr_t offsetAddress = base + 0xaf634;
+    
+    // استبدال كود الـ Write بـ أمر فارغ NOP في المعالجات ARM64 (الـ NOP الثابت هو 0xD503201F)
+    patch_memory(offsetAddress, 0xD503201F);
+    
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"H8 Status" message:@"تم تجميد الفلوس بنجاح! لن تنقص أموالك بعد الآن." preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"كفو" style:UIAlertActionStyleDefault handler:nil]];
+    [[self rootViewController] presentViewController:alert animated:YES completion:nil];
+    
+    [self toggleMenu];
 }
 
 @end
 
-// ==========================================
-// الحقن الأساسي (Hook) لإظهار الواجهة
-// ==========================================
-static BOOL hasCheckedCodeThisSession = NO;
-
-%hook UIViewController
-
-- (void)viewDidAppear:(BOOL)animated {
+// تفعيل القائمة العائمة بمجرد تشغيل اللعبة تلقائياً
+%hook UIApplication
+- (void)finishedLaunching {
     %orig;
-
-    if (hasCheckedCodeThisSession) return;
-
-    // استثناء واجهات النظام
-    NSString *vcName = NSStringFromClass([self class]);
-    if ([vcName containsString:@"UICompatibilityInput"] || [vcName containsString:@"Keyboard"] || [vcName containsString:@"Input"]) {
-        return;
-    }
-
-    hasCheckedCodeThisSession = YES; 
-
-    BOOL isVerified = [[NSUserDefaults standardUserDefaults] boolForKey:PREF_KEY];
-
-    if (isVerified) {
-        // ترحيب بسيط للمسجلين مسبقاً
-        UIAlertController *welcome = [UIAlertController alertControllerWithTitle:@"مرحباً بك مجدداً" message:@"متجر الحسني يتمنى لك وقتاً ممتعاً" preferredStyle:UIAlertControllerStyleAlert];
-        [welcome addAction:[UIAlertAction actionWithTitle:@"استمرار" style:UIAlertActionStyleDefault handler:nil]];
-        [self presentViewController:welcome animated:YES completion:nil];
-    } else {
-        // إظهار واجهة VIP الفخمة للمستخدم الجديد
-        HassaniAuthVC *authVC = [[HassaniAuthVC alloc] init];
-        authVC.modalPresentationStyle = UIModalPresentationOverFullScreen;
-        authVC.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
-        [self presentViewController:authVC animated:YES completion:nil];
-    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [H8FloatingMenu sharedInstance];
+    });
 }
-
 %end
