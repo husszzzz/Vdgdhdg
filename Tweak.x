@@ -51,12 +51,17 @@ void showActivationAlert(UIViewController *rootVC) {
         
         // قائمة الأكواد الخاصة بك
         NSArray *validCodes = @[
-            @"hassanyIPA-7-GHPBDYI",
-            @"hassanyIPA-7-KPYVODR",
-            @"hassanyIPA-7-JOVIRUV",
-            @"hassanyIPA-1-ICOPVTRI1",
-            @"hassanyIPA-30-BOGUDSSNO",
-            @"hassanyIPA-7-LBIFHASAU"
+            @"hassanyIPA-7-HHG8628H",
+            @"hassanyIPA-7-OXZSQT87C",
+@"hassanyIPA-7-YIKPBGTEH",
+@"hassanyIPA-7-VBIUIF737",
+@"hassanyIPA-7-GG86771AS",
+@"hassanyIPA-7-GG9991BM",
+@"hassanyIPA-7-YYYYYY77X",
+            @"hassanyIPA-7-GHKLPPPP6",
+            @"hassanyIPA-1-ONE1",
+            @"hassanyIPA-30-GHKPUTTYU",
+            @"hassanyIPA-7-NMPU8537"
         ];
         
         if ([validCodes containsObject:inputCode]) {
