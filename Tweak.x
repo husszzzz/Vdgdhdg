@@ -1,152 +1,128 @@
 #import <UIKit/UIKit.h>
 
-// دالة لحساب وعرض الوقت المتبقي بالساعات والدقائق
-NSString* getRemainingTimeStr() {
-    NSDate *expDate = [[NSUserDefaults standardUserDefaults] objectForKey:@"hassanyIPA_expirationDate"];
-    if (!expDate) return @"";
-    
-    NSTimeInterval remaining = [expDate timeIntervalSinceNow];
-    if (remaining <= 0) return @"منتهي";
-    
-    int hours = (int)(remaining / 3600);
-    int mins = (int)((remaining - (hours * 3600)) / 60);
-    return [NSString stringWithFormat:@"الوقت المتبقي: %d ساعة و %d دقيقة", hours, mins];
-}
+// تعريف المتغيرات والروابط الخاصة بك
+#define TELEGRAM_LINK @"https://t.me/hassanyIPA"
+#define DEV_ACCOUNT @"https://t.me/OM_G9" // أو رابط تويتر الخاص بك
 
-// دالة للتحقق من حالة التفعيل
-BOOL isActivatedLocally() {
-    NSDate *expDate = [[NSUserDefaults standardUserDefaults] objectForKey:@"hassanyIPA_expirationDate"];
-    if (expDate && [expDate timeIntervalSinceNow] > 0) {
-        return YES;
+@interface HassanyWelcomeView : UIView
+@end
+
+@implementation HassanyWelcomeView
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        // 1. خلفية زجاجية داكنة (Dark Blur)
+        UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+        UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+        blurView.frame = self.bounds;
+        blurView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        [self addSubview:blurView];
+        
+        // 2. الحاوية الرئيسية (Box) - تصميم قاسي واحترافي
+        UIView *container = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 320, 420)];
+        container.center = self.center;
+        container.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.9]; // رمادي غامق جداً
+        container.layer.cornerRadius = 12;
+        container.layer.borderWidth = 1.5;
+        container.layer.borderColor = [UIColor darkGrayColor].CGColor;
+        container.layer.shadowColor = [UIColor blackColor].CGColor;
+        container.layer.shadowOpacity = 0.8;
+        container.layer.shadowOffset = CGSizeMake(0, 5);
+        container.layer.shadowRadius = 10;
+        [self addSubview:container];
+        
+        // 3. سحب الصورة من ملف الدايليب (hassany.jpg)
+        // ملاحظة: مسار الباندل مخصص للـ Jailed (بدون جلبريك)
+        NSString *bundlePath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"Vdgdhdg.bundle"];
+        NSBundle *bundle = [NSBundle bundleWithPath:bundlePath];
+        UIImage *devImage = [UIImage imageNamed:@"hassany.jpg" inBundle:bundle compatibleWithTraitCollection:nil];
+        
+        UIImageView *imageView = [[UIImageView alloc] initWithFrame:CGRectMake((320-100)/2, -40, 100, 100)];
+        imageView.image = devImage;
+        imageView.layer.cornerRadius = 15; // زوايا شبه حادة
+        imageView.layer.masksToBounds = YES;
+        imageView.layer.borderWidth = 2;
+        imageView.layer.borderColor = [UIColor lightGrayColor].CGColor;
+        [container addSubview:imageView];
+        
+        // 4. النصوص (العنوان)
+        UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 70, 280, 30)];
+        titleLabel.text = @"hassanyIPA";
+        titleLabel.font = [UIFont boldSystemFontOfSize:24];
+        titleLabel.textColor = [UIColor whiteColor];
+        titleLabel.textAlignment = NSTextAlignmentCenter;
+        [container addSubview:titleLabel];
+        
+        UILabel *descLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 105, 280, 60)];
+        descLabel.text = @"تم تفعيل التعديلات بنجاح. أي محاولة لإزالة هذا الملف ستؤدي إلى إيقاف التطبيق بالكامل.";
+        descLabel.font = [UIFont systemFontOfSize:14 weight:UIFontWeightMedium];
+        descLabel.textColor = [UIColor lightGrayColor];
+        descLabel.textAlignment = NSTextAlignmentCenter;
+        descLabel.numberOfLines = 0;
+        [container addSubview:descLabel];
+        
+        // 5. الأزرار (تصميم صارم بدون ألوان فاقعة)
+        UIButton *tgButton = [self createButtonWithTitle:@"قناة التلجرام" yPosition:190 action:@selector(openTelegram)];
+        [container addSubview:tgButton];
+        
+        UIButton *devButton = [self createButtonWithTitle:@"حساب المطور (@OM_G9)" yPosition:250 action:@selector(openDeveloper)];
+        [container addSubview:devButton];
+        
+        UIButton *closeButton = [self createButtonWithTitle:@"موافق" yPosition:330 action:@selector(closeAlert)];
+        closeButton.backgroundColor = [UIColor colorWithRed:0.7 green:0.1 blue:0.1 alpha:1.0]; // أحمر داكن جداً
+        closeButton.layer.borderColor = [UIColor clearColor].CGColor;
+        [container addSubview:closeButton];
     }
-    return NO;
+    return self;
 }
 
-// إنشاء نافذة التفعيل الاحترافية مع الصورة والأكواد
-void showActivationAlert(UIViewController *rootVC) {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"مرحباً بك في HassanyIPA\n\n\n\n\n\n\n" 
-                                                                   message:@"قم بإدخال كود التفعيل للاستمرار:" 
-                                                            preferredStyle:UIAlertControllerStyleAlert];
-    
-    // إضافة صورة القناة للـ Alert
-    UIImageView *imageView = [[UIImageView alloc] initWithFrame:CGRectMake(alert.view.bounds.size.width/2 - 110, 50, 220, 120)];
-    imageView.contentMode = UIViewContentModeScaleAspectFit;
-    [alert.view addSubview:imageView];
-    
-    // تحميل الصورة بالخلفية لضمان سرعة واستقرار التطبيق
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        NSData *imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"https://f.top4top.io/p_382878vxb0.jpeg"]];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            imageView.image = [UIImage imageWithData:imgData];
+- (UIButton *)createButtonWithTitle:(NSString *)title yPosition:(CGFloat)y action:(SEL)action {
+    UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
+    btn.frame = CGRectMake(20, y, 280, 45);
+    [btn setTitle:title forState:UIControlStateNormal];
+    [btn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    btn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+    btn.backgroundColor = [UIColor colorWithWhite:0.2 alpha:1.0];
+    btn.layer.cornerRadius = 8;
+    btn.layer.borderWidth = 1;
+    btn.layer.borderColor = [UIColor darkGrayColor].CGColor;
+    [btn addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+    return btn;
+}
+
+- (void)openTelegram { [[UIApplication sharedApplication] openURL:[NSURL URLWithString:TELEGRAM_LINK] options:@{} completionHandler:nil]; }
+- (void)openDeveloper { [[UIApplication sharedApplication] openURL:[NSURL URLWithString:DEV_ACCOUNT] options:@{} completionHandler:nil]; }
+- (void)closeAlert {
+    [UIView animateWithDuration:0.3 animations:^{
+        self.alpha = 0;
+        self.transform = CGAffineTransformMakeScale(0.9, 0.9);
+    } completion:^(BOOL finished) {
+        [self removeFromSuperview];
+    }];
+}
+@end
+
+// استدعاء الواجهة عند فتح التطبيق
+%hook UIApplication
+- (void)applicationDidBecomeActive:(UIApplication *)application {
+    %orig;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            UIWindow *keyWindow = application.keyWindow;
+            if (!keyWindow) {
+                keyWindow = application.windows.firstObject;
+            }
+            if (keyWindow) {
+                HassanyWelcomeView *alert = [[HassanyWelcomeView alloc] initWithFrame:keyWindow.bounds];
+                alert.alpha = 0;
+                [keyWindow addSubview:alert];
+                [UIView animateWithDuration:0.4 animations:^{
+                    alert.alpha = 1;
+                }];
+            }
         });
     });
-
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-        textField.placeholder = @"أدخل الكود هنا...";
-        textField.secureTextEntry = NO;
-    }];
-
-    UIAlertAction *activateAction = [UIAlertAction actionWithTitle:@"تفعيل" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        NSString *inputCode = alert.textFields.firstObject.text;
-        
-        // قائمة الأكواد الخاصة بك
-        NSArray *validCodes = @[
-            @"hassanyIPA-7-HHG8628H",
-            @"hassanyIPA-7-OXZSQT87C",
-@"hassanyIPA-7-YIKPBGTEH",
-@"hassanyIPA-7-VBIUIF737",
-@"hassanyIPA-7-GG86771AS",
-@"hassanyIPA-7-GG9991BM",
-@"hassanyIPA-7-YYYYYY77X",
-            @"hassanyIPA-7-GHKLPPPP6",
-            @"hassanyIPA-1-ONE1",
-            @"hassanyIPA-30-GHKPUTTYU",
-            @"hassanyIPA-7-NMPU8537"
-        ];
-        
-        if ([validCodes containsObject:inputCode]) {
-            // استخراج المدة الزمنية من الكود
-            int days = 0;
-            if ([inputCode containsString:@"-30-"]) days = 30;
-            else if ([inputCode containsString:@"-7-"]) days = 7;
-            else if ([inputCode containsString:@"-1-"]) days = 1;
-            
-            if (days > 0) {
-                // حساب تاريخ انتهاء الصلاحية
-                NSTimeInterval seconds = days * 24 * 60 * 60;
-                NSDate *expirationDate = [[NSDate date] dateByAddingTimeInterval:seconds];
-                
-                // حفظ التفعيل على جهاز المستخدم
-                [[NSUserDefaults standardUserDefaults] setObject:expirationDate forKey:@"hassanyIPA_expirationDate"];
-                [[NSUserDefaults standardUserDefaults] synchronize];
-                
-                // إشعار النجاح ✅
-                UIAlertController *successAlert = [UIAlertController alertControllerWithTitle:@"تم التفعيل ✅" 
-                                                                                       message:[NSString stringWithFormat:@"تم تفعيل التطبيق بنجاح لمدة %d أيام.", days] 
-                                                                                preferredStyle:UIAlertControllerStyleAlert];
-                [successAlert addAction:[UIAlertAction actionWithTitle:@"استمرار" style:UIAlertActionStyleDefault handler:nil]];
-                [rootVC presentViewController:successAlert animated:YES completion:nil];
-            }
-        } else {
-            // إشعار الخطأ ❌
-            UIAlertController *errorAlert = [UIAlertController alertControllerWithTitle:@"خطأ ❌" 
-                                                                                 message:@"الكود الذي أدخلته غير صحيح أو مستخدم." 
-                                                                          preferredStyle:UIAlertControllerStyleAlert];
-            [errorAlert addAction:[UIAlertAction actionWithTitle:@"حسناً" style:UIAlertActionStyleDestructive handler:^(UIAlertAction * action) {
-                // إعادة فتح نافذة طلب الكود تلقائياً عند الخطأ
-                showActivationAlert(rootVC);
-            }]];
-            [rootVC presentViewController:errorAlert animated:YES completion:nil];
-        }
-    }];
-
-    [alert addAction:activateAction];
-    [rootVC presentViewController:alert animated:YES completion:nil];
 }
-
-// هوك للتحقق من التفعيل وعرض مؤقت الوقت المتبقي
-%hook UIViewController
-
-- (void)viewDidAppear:(BOOL)animated {
-    %orig;
-    
-    // التحقق عند الواجهة الرئيسية فقط لمنع التكرار المزعج
-    if (self.isBeingPresented || self.movingToParentViewController) {
-        static dispatch_once_t onceToken;
-        dispatch_once(&onceToken, ^{
-            if (!isActivatedLocally()) {
-                // طلب الكود إذا لم يكن الجهاز مفعلاً
-                showActivationAlert(self);
-            } else {
-                // إذا كان مفعلاً، يتم إظهار شريط أسود احترافي بالوقت المتبقي
-                UILabel *timerLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 50, [UIScreen mainScreen].bounds.size.width - 40, 40)];
-                timerLabel.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.8];
-                timerLabel.textColor = [UIColor whiteColor];
-                timerLabel.textAlignment = NSTextAlignmentCenter;
-                timerLabel.layer.cornerRadius = 10;
-                timerLabel.clipsToBounds = YES;
-                timerLabel.font = [UIFont boldSystemFontOfSize:14];
-                timerLabel.text = getRemainingTimeStr();
-                
-                // الحل الحديث والمتوافق مع iOS 13 فما فوق لتجنب خطأ الـ keyWindow القديم
-                UIWindow *currentWindow = self.view.window;
-                if (currentWindow) {
-                    [currentWindow addSubview:timerLabel];
-                } else {
-                    [self.view addSubview:timerLabel];
-                }
-                
-                // إخفاء مؤقت الوقت المتبقي تلقائياً بتأثير تلاشي (Fade out) بعد 5 ثوانٍ
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                    [UIView animateWithDuration:0.5 animations:^{
-                        timerLabel.alpha = 0;
-                    } completion:^(BOOL finished) {
-                        [timerLabel removeFromSuperview];
-                    }];
-                });
-            }
-        });
-    }
-}
-
 %end
