@@ -36,7 +36,7 @@
         // ملاحظة: مسار الباندل مخصص للـ Jailed (بدون جلبريك)
         NSString *bundlePath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"Vdgdhdg.bundle"];
         NSBundle *bundle = [NSBundle bundleWithPath:bundlePath];
-        UIImage *devImage = [UIImage imageNamed:@"hassany.jpg" inBundle:bundle compatibleWithTraitCollection:nil];
+        UIImage *devImage = [UIImage imageNamed:@"hassany.JPG" inBundle:bundle compatibleWithTraitCollection:nil];
         
         UIImageView *imageView = [[UIImageView alloc] initWithFrame:CGRectMake((320-100)/2, -40, 100, 100)];
         imageView.image = devImage;
