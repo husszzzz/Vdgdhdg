@@ -1,11 +1,12 @@
-TARGET := iphone:clang:latest:15.0
-ARCHS = arm64 arm64e
+ARCHS = arm64
+TARGET = iphone:clang:latest:14.0
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = Vgdhdhd
+TWEAK_NAME = iKiraPlus
 
-Vgdhdhd_FILES = Tweak.x
-Vgdhdhd_FRAMEWORKS = UIKit CoreGraphics QuartzCore
+iKiraPlus_FILES = Tweak.x
+iKiraPlus_CFLAGS = -fobjc-arc
+iKiraPlus_FRAMEWORKS = UIKit Foundation QuartzCore
 
-include $(THEOS)/makefiles/tweak.mk
+include $(THEOS_MAKE_PATH)/tweak.mk
