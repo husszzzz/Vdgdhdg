@@ -1,13 +1,13 @@
 #import <UIKit/UIKit.h>
 
 // ==========================================
-// 1. إعدادات الروابط 
+// 1. إعدادات الروابط الخاصة بك
 // ==========================================
 #define TELEGRAM_LINK @"https://t.me/hassanyIPA"
 #define DEV_ACCOUNT @"https://t.me/OM_G9" 
 
 // ==========================================
-// 2. تصميم الواجهة الاحترافية والانسيابية
+// 2. تصميم الواجهة الاحترافية (Full Screen Effect & Notifications)
 // ==========================================
 @interface HassanyWelcomeView : UIView
 @property (nonatomic, strong) UIView *container;
@@ -19,114 +19,133 @@
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
-        // 1. خلفية التعتيم الشاملة (Blur)
+        // 1. خلفية تعتيم (Blur) تغطي الشاشة بالكامل
         UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
         UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
         blurView.frame = self.bounds;
         blurView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-        blurView.alpha = 0.8;
+        blurView.alpha = 0.85;
         [self addSubview:blurView];
         
-        // 2. خلفية متحركة (Gradient Animation) للـ View الرئيسي لمسة احترافية
+        // 2. خلفية متدرجة (Gradient) كطبقة أساسية
         self.gradientLayer = [CAGradientLayer layer];
         self.gradientLayer.frame = self.bounds;
-        self.gradientLayer.colors = @[(id)[UIColor colorWithRed:0.05 green:0.05 blue:0.15 alpha:0.6].CGColor,
-                                      (id)[UIColor colorWithRed:0.15 green:0.05 blue:0.25 alpha:0.6].CGColor,
-                                      (id)[UIColor colorWithRed:0.05 green:0.15 blue:0.2 alpha:0.6].CGColor];
+        self.gradientLayer.colors = @[(id)[UIColor colorWithRed:0.05 green:0.05 blue:0.15 alpha:0.7].CGColor,
+                                      (id)[UIColor colorWithRed:0.1 green:0.05 blue:0.2 alpha:0.7].CGColor,
+                                      (id)[UIColor colorWithRed:0.05 green:0.1 blue:0.2 alpha:0.7].CGColor];
         self.gradientLayer.startPoint = CGPointMake(0, 0);
         self.gradientLayer.endPoint = CGPointMake(1, 1);
         [self.layer addSublayer:self.gradientLayer];
-        [self animateGradient];
-
-        // 3. الحاوية (Container) - زوايا دائرية ناعمة ولون أنيق
-        self.container = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 310, 420)];
+        
+        // 3. تأثير الدوائر العائمة (Floating Bubbles) في الخلفية
+        [self createFloatingBubbles];
+        
+        // 4. الحاوية الرئيسية (Box) - حجم أكبر وتصميم عصري
+        CGFloat boxWidth = self.bounds.size.width - 40; // ياخذ عرض الشاشة مع هوامش
+        if (boxWidth > 360) boxWidth = 360; // حد أقصى للايباد
+        CGFloat boxHeight = 460;
+        
+        self.container = [[UIView alloc] initWithFrame:CGRectMake(0, 0, boxWidth, boxHeight)];
         self.container.center = self.center;
-        self.container.backgroundColor = [UIColor colorWithRed:0.12 green:0.13 blue:0.17 alpha:1.0];
-        self.container.layer.cornerRadius = 24; // زوايا ناعمة مثل الصورة
+        self.container.backgroundColor = [UIColor colorWithRed:0.15 green:0.15 blue:0.18 alpha:0.95];
+        self.container.layer.cornerRadius = 24;
         self.container.layer.shadowColor = [UIColor blackColor].CGColor;
-        self.container.layer.shadowOpacity = 0.5;
-        self.container.layer.shadowOffset = CGSizeMake(0, 8);
-        self.container.layer.shadowRadius = 15;
+        self.container.layer.shadowOpacity = 0.6;
+        self.container.layer.shadowOffset = CGSizeMake(0, 10);
+        self.container.layer.shadowRadius = 20;
         [self addSubview:self.container];
         
-        // 4. الصورة الشخصية
+        // 5. الصورة الشخصية (إصلاح مسار الاستدعاء)
         NSString *bundlePath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"Vdgdhdg.bundle"];
-        NSBundle *bundle = [NSBundle bundleWithPath:bundlePath];
-        UIImage *devImage = [UIImage imageNamed:@"hassany.jpg" inBundle:bundle compatibleWithTraitCollection:nil];
+        NSString *imagePath = [bundlePath stringByAppendingPathComponent:@"hassany.JPG"];
+        UIImage *devImage = [UIImage imageWithContentsOfFile:imagePath]; // استخدام المسار المباشر أضمن
         
-        UIImageView *imageView = [[UIImageView alloc] initWithFrame:CGRectMake((310-90)/2, 30, 90, 90)];
+        UIImageView *imageView = [[UIImageView alloc] initWithFrame:CGRectMake((boxWidth-100)/2, 30, 100, 100)];
         imageView.image = devImage;
-        imageView.layer.cornerRadius = 20; // زوايا مطابقة لتصميم الايفون الحديث
+        imageView.backgroundColor = [UIColor darkGrayColor]; // لون احتياطي إذا لم توجد الصورة
+        imageView.layer.cornerRadius = 22; 
         imageView.layer.masksToBounds = YES;
         imageView.layer.borderWidth = 1.5;
-        imageView.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.2].CGColor;
+        imageView.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.3].CGColor;
         [self.container addSubview:imageView];
         
-        // 5. النصوص (خطوط أنيقة ومرتبة)
-        UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 135, 270, 35)];
+        // 6. النصوص
+        UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 145, boxWidth-40, 35)];
         titleLabel.text = @"يا هلا بيك";
-        titleLabel.font = [UIFont systemFontOfSize:26 weight:UIFontWeightBold];
+        titleLabel.font = [UIFont systemFontOfSize:28 weight:UIFontWeightBold];
         titleLabel.textColor = [UIColor whiteColor];
         titleLabel.textAlignment = NSTextAlignmentCenter;
         [self.container addSubview:titleLabel];
         
-        UILabel *descLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 175, 270, 50)];
+        UILabel *descLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 185, boxWidth-40, 50)];
         descLabel.text = @"تابعنا للمزيد من التطبيقات المميزة ، ولا تتردد بالتواصل مع المطور لطرح أي سؤال أو حل مشكلة ❤️.";
         descLabel.font = [UIFont systemFontOfSize:14 weight:UIFontWeightRegular];
-        descLabel.textColor = [UIColor colorWithWhite:0.8 alpha:1.0];
+        descLabel.textColor = [UIColor colorWithWhite:0.85 alpha:1.0];
         descLabel.textAlignment = NSTextAlignmentCenter;
         descLabel.numberOfLines = 0;
         [self.container addSubview:descLabel];
         
-        // خط فاصل رفيع وأنيق
-        UIView *separator = [[UIView alloc] initWithFrame:CGRectMake(30, 240, 250, 1)];
-        separator.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.1];
+        // خط فاصل
+        UIView *separator = [[UIView alloc] initWithFrame:CGRectMake(30, 255, boxWidth-60, 1)];
+        separator.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.15];
         [self.container addSubview:separator];
         
-        // 6. الأزرار بتصميم عصري (أزرق فاهي ورمادي)
+        // 7. الأزرار 
         UIColor *blueButtonColor = [UIColor colorWithRed:0.25 green:0.45 blue:0.95 alpha:1.0];
+        CGFloat btnWidth = boxWidth - 50;
         
-        UIButton *tgButton = [self createModernButtonWithTitle:@"Telegram" yPosition:260 color:blueButtonColor action:@selector(openTelegram)];
+        UIButton *tgButton = [self createModernButtonWithTitle:@"Telegram" yPosition:280 width:btnWidth color:blueButtonColor action:@selector(openTelegram)];
         [self.container addSubview:tgButton];
         
-        UIButton *devButton = [self createModernButtonWithTitle:@"Developer" yPosition:315 color:blueButtonColor action:@selector(openDeveloper)];
+        UIButton *devButton = [self createModernButtonWithTitle:@"Developer" yPosition:335 width:btnWidth color:blueButtonColor action:@selector(openDeveloper)];
         [self.container addSubview:devButton];
         
-        UIButton *closeButton = [self createModernButtonWithTitle:@"شكراً ❤️" yPosition:370 color:[UIColor colorWithWhite:0.25 alpha:1.0] action:@selector(closeAlertAndShowThanks)];
+        UIButton *closeButton = [self createModernButtonWithTitle:@"شكراً ❤️" yPosition:390 width:btnWidth color:[UIColor colorWithWhite:0.25 alpha:1.0] action:@selector(closeAlertAndShowNotification)];
         [self.container addSubview:closeButton];
         
-        // تأثير الظهور (Pop Animation)
+        // تأثير الظهور
         self.container.transform = CGAffineTransformMakeScale(0.8, 0.8);
-        self.container.alpha = 0;
+        self.alpha = 0;
         [UIView animateWithDuration:0.5 delay:0 usingSpringWithDamping:0.7 initialSpringVelocity:0.5 options:UIViewAnimationOptionCurveEaseOut animations:^{
             self.container.transform = CGAffineTransformIdentity;
-            self.container.alpha = 1;
+            self.alpha = 1;
         } completion:nil];
     }
     return self;
 }
 
-// دالة تحريك الخلفية بشكل مستمر (انسيابي)
-- (void)animateGradient {
-    CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:@"colors"];
-    animation.toValue = @[(id)[UIColor colorWithRed:0.05 green:0.15 blue:0.2 alpha:0.6].CGColor,
-                          (id)[UIColor colorWithRed:0.05 green:0.05 blue:0.15 alpha:0.6].CGColor,
-                          (id)[UIColor colorWithRed:0.15 green:0.05 blue:0.25 alpha:0.6].CGColor];
-    animation.duration = 4.0;
-    animation.autoreverses = YES;
-    animation.repeatCount = HUGE_VALF;
-    [self.gradientLayer addAnimation:animation forKey:@"colorChange"];
+// دالة الدوائر المتحركة في الخلفية
+- (void)createFloatingBubbles {
+    for (int i = 0; i < 5; i++) {
+        CGFloat size = arc4random_uniform(150) + 100; // أحجام مختلفة
+        CGFloat x = arc4random_uniform((int)self.bounds.size.width);
+        CGFloat y = arc4random_uniform((int)self.bounds.size.height);
+        
+        UIView *bubble = [[UIView alloc] initWithFrame:CGRectMake(x, y, size, size)];
+        bubble.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.03]; // دوائر شفافة جداً
+        bubble.layer.cornerRadius = size / 2;
+        [self insertSubview:bubble belowSubview:self.container];
+        
+        // حركة مستمرة
+        [UIView animateWithDuration:(arc4random_uniform(5) + 5) 
+                              delay:0 
+                            options:UIViewAnimationOptionAutoreverse | UIViewAnimationOptionRepeat | UIViewAnimationOptionCurveEaseInOut 
+                         animations:^{
+            bubble.transform = CGAffineTransformMakeTranslation(arc4random_uniform(50)-25, arc4random_uniform(50)-25);
+            bubble.transform = CGAffineTransformScale(bubble.transform, 1.2, 1.2);
+        } completion:nil];
+    }
 }
 
-// دالة إنشاء الأزرار بالتصميم الجديد
-- (UIButton *)createModernButtonWithTitle:(NSString *)title yPosition:(CGFloat)y color:(UIColor *)bgColor action:(SEL)action {
+// إنشاء الأزرار
+- (UIButton *)createModernButtonWithTitle:(NSString *)title yPosition:(CGFloat)y width:(CGFloat)width color:(UIColor *)bgColor action:(SEL)action {
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
-    btn.frame = CGRectMake(25, y, 260, 45);
+    btn.frame = CGRectMake(25, y, width, 45);
     [btn setTitle:title forState:UIControlStateNormal];
     [btn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    btn.titleLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightSemibold];
+    btn.titleLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightSemibold];
     btn.backgroundColor = bgColor;
-    btn.layer.cornerRadius = 12; // زوايا دائرية للأزرار
+    btn.layer.cornerRadius = 14; 
     [btn addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
     return btn;
 }
@@ -134,49 +153,65 @@
 - (void)openTelegram { [[UIApplication sharedApplication] openURL:[NSURL URLWithString:TELEGRAM_LINK] options:@{} completionHandler:nil]; }
 - (void)openDeveloper { [[UIApplication sharedApplication] openURL:[NSURL URLWithString:DEV_ACCOUNT] options:@{} completionHandler:nil]; }
 
-// دالة الإغلاق الانسيابي وعرض رسالة الشكر المنبثقة (Toast)
-- (void)closeAlertAndShowThanks {
-    // 1. إخفاء الواجهة بانسيابية
+// دالة الإغلاق وعرض "الإشعار" من الأعلى (نظام iOS البانر)
+- (void)closeAlertAndShowNotification {
     [UIView animateWithDuration:0.3 animations:^{
         self.container.transform = CGAffineTransformMakeScale(0.9, 0.9);
         self.alpha = 0;
     } completion:^(BOOL finished) {
-        // 2. إزالة الواجهة القديمة
         UIView *parentView = self.superview;
         [self removeFromSuperview];
         
-        // 3. إنشاء رسالة الشكر (Toast)
         if (parentView) {
-            UILabel *toastLabel = [[UILabel alloc] init];
-            toastLabel.text = @"شكراً لكم المطور الوحيد حسين الحسني";
-            toastLabel.font = [UIFont systemFontOfSize:14 weight:UIFontWeightMedium];
-            toastLabel.textColor = [UIColor whiteColor];
-            toastLabel.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.9];
-            toastLabel.textAlignment = NSTextAlignmentCenter;
-            toastLabel.layer.cornerRadius = 20;
-            toastLabel.layer.masksToBounds = YES;
+            // 1. تصميم بانر الإشعار (Notification Banner)
+            CGFloat bannerHeight = 70;
+            CGFloat safeTop = 40; // مسافة من الأعلى (للنوتش/الجزيرة)
+            UIView *banner = [[UIView alloc] initWithFrame:CGRectMake(15, safeTop - 100, parentView.bounds.size.width - 30, bannerHeight)];
+            banner.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.95];
+            banner.layer.cornerRadius = 20;
+            banner.layer.shadowColor = [UIColor blackColor].CGColor;
+            banner.layer.shadowOpacity = 0.3;
+            banner.layer.shadowOffset = CGSizeMake(0, 5);
+            banner.layer.shadowRadius = 10;
             
-            // ضبط حجم الرسالة بناءً على النص
-            CGSize textSize = [toastLabel.text sizeWithAttributes:@{NSFontAttributeName:toastLabel.font}];
-            toastLabel.frame = CGRectMake((parentView.bounds.size.width - textSize.width - 40)/2,
-                                          parentView.bounds.size.height - 100, // تظهر في أسفل الشاشة
-                                          textSize.width + 40, 40);
+            // 2. صورة مصغرة داخل الإشعار
+            NSString *bundlePath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"Vdgdhdg.bundle"];
+            NSString *imagePath = [bundlePath stringByAppendingPathComponent:@"hassany.jpg"];
+            UIImage *devImage = [UIImage imageWithContentsOfFile:imagePath];
             
-            toastLabel.alpha = 0;
-            toastLabel.transform = CGAffineTransformMakeTranslation(0, 20);
-            [parentView addSubview:toastLabel];
+            UIImageView *iconView = [[UIImageView alloc] initWithFrame:CGRectMake(15, 15, 40, 40)];
+            iconView.image = devImage;
+            iconView.backgroundColor = [UIColor grayColor];
+            iconView.layer.cornerRadius = 10;
+            iconView.layer.masksToBounds = YES;
+            [banner addSubview:iconView];
             
-            // أنيميشن ظهور رسالة الشكر
-            [UIView animateWithDuration:0.4 delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
-                toastLabel.alpha = 1;
-                toastLabel.transform = CGAffineTransformIdentity;
+            // 3. نصوص الإشعار
+            UILabel *titleLab = [[UILabel alloc] initWithFrame:CGRectMake(65, 15, banner.bounds.size.width - 80, 20)];
+            titleLab.text = @"hassanyIPA";
+            titleLab.font = [UIFont systemFontOfSize:15 weight:UIFontWeightBold];
+            titleLab.textColor = [UIColor whiteColor];
+            [banner addSubview:titleLab];
+            
+            UILabel *msgLab = [[UILabel alloc] initWithFrame:CGRectMake(65, 35, banner.bounds.size.width - 80, 20)];
+            msgLab.text = @"شكراً لكم المطور الوحيد حسين الحسني";
+            msgLab.font = [UIFont systemFontOfSize:13 weight:UIFontWeightRegular];
+            msgLab.textColor = [UIColor lightGrayColor];
+            [banner addSubview:msgLab];
+            
+            [parentView addSubview:banner];
+            
+            // 4. حركة نزول الإشعار من فوق (Slide Down)
+            [UIView animateWithDuration:0.5 delay:0 usingSpringWithDamping:0.7 initialSpringVelocity:0.5 options:UIViewAnimationOptionCurveEaseOut animations:^{
+                banner.frame = CGRectMake(15, safeTop, parentView.bounds.size.width - 30, bannerHeight);
             } completion:^(BOOL finished) {
-                // أنيميشن اختفاء رسالة الشكر بعد ثانيتين
-                [UIView animateWithDuration:0.4 delay:2.0 options:UIViewAnimationOptionCurveEaseIn animations:^{
-                    toastLabel.alpha = 0;
-                    toastLabel.transform = CGAffineTransformMakeTranslation(0, 20);
+                
+                // 5. انتظار ثانيتين ثم الصعود والاختفاء (Slide Up)
+                [UIView animateWithDuration:0.4 delay:2.5 options:UIViewAnimationOptionCurveEaseIn animations:^{
+                    banner.frame = CGRectMake(15, safeTop - 100, parentView.bounds.size.width - 30, bannerHeight);
+                    banner.alpha = 0;
                 } completion:^(BOOL finished) {
-                    [toastLabel removeFromSuperview];
+                    [banner removeFromSuperview];
                 }];
             }];
         }
@@ -185,7 +220,7 @@
 @end
 
 // ==========================================
-// 3. الاستدعاء المضمون (Hook UIViewController)
+// 3. الاستدعاء المضمون 100% (Hook UIViewController)
 // ==========================================
 %hook UIViewController
 
@@ -203,7 +238,7 @@
             
             if (targetView) {
                 HassanyWelcomeView *alert = [[HassanyWelcomeView alloc] initWithFrame:targetView.bounds];
-                alert.layer.zPosition = 9999; // البقاء في أعلى طبقة
+                alert.layer.zPosition = 9999; 
                 [targetView addSubview:alert];
             }
         });
