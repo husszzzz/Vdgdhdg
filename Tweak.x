@@ -1,61 +1,205 @@
-#import <Foundation/Foundation.h>
-#import <mach-o/dyld.h>
-#import <mach-o/loader.h>
-#import <sys/mman.h>
-#import <string.h>
+#import <UIKit/UIKit.h>
+#import <QuartzCore/QuartzCore.h>
 
-// دالة البحث والاستبدال في الذاكرة (Memory Patcher)
-void patchHexInMemory() {
-    // كود الهكس القديم لجملة (شكرا لثقتكم...) بلغة فلاتر
-    uint8_t searchHex[] = {0x34, 0x06, 0x43, 0x06, 0x31, 0x06, 0x27, 0x06, 0x20, 0x00, 0x44, 0x06, 0x2B, 0x06, 0x42, 0x06, 0x2A, 0x06, 0x43, 0x06, 0x45, 0x06, 0x20, 0x00, 0x28, 0x06, 0x46, 0x06, 0x27, 0x06, 0x2E, 0x00, 0x2E, 0x00, 0x20, 0x00, 0x48, 0x06, 0x2F, 0x06, 0x39, 0x06, 0x45, 0x06, 0x43, 0x06, 0x45, 0x06, 0x20, 0x00, 0x44, 0x06, 0x46, 0x06, 0x27, 0x06, 0x2E, 0x00, 0x2E, 0x00};
-    
-    // كود الهكس الجديد لجملتك (معدل بواسطة حسين الحسني + مسافات تعويضية)
-    uint8_t replaceHex[] = {0x45, 0x06, 0x39, 0x06, 0x2F, 0x06, 0x44, 0x06, 0x20, 0x00, 0x28, 0x06, 0x48, 0x06, 0x27, 0x06, 0x33, 0x06, 0x37, 0x06, 0x29, 0x06, 0x20, 0x00, 0x2D, 0x06, 0x33, 0x06, 0x4A, 0x06, 0x46, 0x06, 0x20, 0x00, 0x27, 0x06, 0x44, 0x06, 0x2D, 0x06, 0x33, 0x06, 0x46, 0x06, 0x4A, 0x06, 0x20, 0x00, 0x20, 0x00, 0x20, 0x00, 0x20, 0x00, 0x20, 0x00, 0x20, 0x00, 0x20, 0x00};
+// مفتاح الحفظ حتى ما تظهر الرسالة مرة ثانية إذا تفعل الزر
+static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
 
-    size_t patternSize = sizeof(searchHex);
+@interface HassanyWelcomeAlert : UIView
+@property (nonatomic, strong) UISwitch *toggleSwitch;
+@end
 
-    // فحص كل الملفات المحملة بالذاكرة
-    for (uint32_t i = 0; i < _dyld_image_count(); i++) {
-        const char *imageName = _dyld_get_image_name(i);
-        
-        // نستهدف ملف App الخاص بمحرك فلاتر حصراً
-        if (strstr(imageName, "App.framework/App")) {
-            intptr_t slide = _dyld_get_image_vmaddr_slide(i);
-            const struct mach_header_64 *header = (const struct mach_header_64 *)_dyld_get_image_header(i);
-            
-            struct load_command *cmd = (struct load_command *)((char *)header + sizeof(struct mach_header_64));
-            for (uint32_t c = 0; c < header->ncmds; c++) {
-                if (cmd->cmd == LC_SEGMENT_64) {
-                    struct segment_command_64 *seg = (struct segment_command_64 *)cmd;
-                    
-                    // نبحث داخل قطاعات الذاكرة المقروءة فقط
-                    if (seg->initprot & VM_PROT_READ) {
-                        uint8_t *segmentStart = (uint8_t *)(seg->vmaddr + slide);
-                        uint64_t segmentSize = seg->vmsize;
-                        
-                        // المسح (Scan)
-                        for (uint64_t j = 0; j < segmentSize - patternSize; j++) {
-                            if (memcmp(segmentStart + j, searchHex, patternSize) == 0) {
-                                
-                                // فك حماية الذاكرة حتى نظام iOS يسمح لنا بالتعديل
-                                void *pageStart = (void *)((uintptr_t)(segmentStart + j) & ~(getpagesize() - 1));
-                                mprotect(pageStart, getpagesize(), PROT_READ | PROT_WRITE | PROT_EXEC);
-                                
-                                // حقن الهكس الجديد مكان القديم
-                                memcpy(segmentStart + j, replaceHex, patternSize);
-                                
-                                return; 
-                            }
-                        }
-                    }
+@implementation HassanyWelcomeAlert
+
++ (void)show {
+    // التحقق إذا المستخدم طلب عدم إظهار الرسالة
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:kHideHassanyWelcome]) return;
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIWindow *window = nil;
+        if (@available(iOS 13.0, *)) {
+            for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
+                if (scene.activationState == UISceneActivationStateForegroundActive) {
+                    window = scene.windows.firstObject;
+                    break;
                 }
-                cmd = (struct load_command *)((char *)cmd + cmd->cmdsize);
             }
         }
-    }
+        if (!window) window = [UIApplication sharedApplication].keyWindow;
+        if (!window) return;
+
+        HassanyWelcomeAlert *alert = [[HassanyWelcomeAlert alloc] initWithFrame:window.bounds];
+        [window addSubview:alert];
+        [alert animateIn];
+    });
 }
 
-// دالة الإقلاع: تشتغل أول ما يفتح التطبيق
-%ctor {
-    patchHexInMemory();
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        // 1. الخلفية الشفافة والدوائر المتحركة (Animated Blur Background)
+        self.backgroundColor = [UIColor colorWithWhite:0 alpha:0.4];
+
+        UIView *purpleCircle = [[UIView alloc] initWithFrame:CGRectMake(-50, -50, 300, 300)];
+        purpleCircle.backgroundColor = [[UIColor purpleColor] colorWithAlphaComponent:0.4];
+        purpleCircle.layer.cornerRadius = 150;
+        [self addSubview:purpleCircle];
+
+        UIView *blueCircle = [[UIView alloc] initWithFrame:CGRectMake(frame.size.width - 200, frame.size.height - 300, 250, 250)];
+        blueCircle.backgroundColor = [[UIColor blueColor] colorWithAlphaComponent:0.4];
+        blueCircle.layer.cornerRadius = 125;
+        [self addSubview:blueCircle];
+
+        UIVisualEffectView *bgBlur = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleDark]];
+        bgBlur.frame = self.bounds;
+        [self addSubview:bgBlur];
+
+        // تحريك الدوائر باستمرار
+        [UIView animateWithDuration:6.0 delay:0 options:UIViewAnimationOptionAutoreverse | UIViewAnimationOptionRepeat | UIViewAnimationOptionCurveEaseInOut animations:^{
+            purpleCircle.frame = CGRectOffset(purpleCircle.frame, 100, 150);
+            blueCircle.frame = CGRectOffset(blueCircle.frame, -100, -150);
+        } completion:nil];
+
+        // 2. المربع الأساسي (Card)
+        CGFloat cardWidth = frame.size.width * 0.85;
+        UIView *card = [[UIView alloc] initWithFrame:CGRectMake(0, 0, cardWidth, 480)];
+        card.center = self.center;
+        card.backgroundColor = [UIColor colorWithRed:0.15 green:0.15 blue:0.18 alpha:1.0]; // لون رصاصي غامق مقارب للصورة
+        card.layer.cornerRadius = 22;
+        card.clipsToBounds = YES;
+        card.layer.borderWidth = 1;
+        card.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.1].CGColor;
+        [self addSubview:card];
+
+        // 3. صورة المطور (تحميل مباشر من الرابط)
+        UIImageView *imageView = [[UIImageView alloc] initWithFrame:CGRectMake((cardWidth-100)/2, 30, 100, 100)];
+        imageView.layer.cornerRadius = 20;
+        imageView.clipsToBounds = YES;
+        imageView.layer.borderWidth = 1.5;
+        imageView.layer.borderColor = [UIColor whiteColor].CGColor;
+        imageView.contentMode = UIViewContentModeScaleAspectFill;
+        [card addSubview:imageView];
+
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"https://k.top4top.io/p_3872ymbwu0.jpeg"]];
+            if (data) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    imageView.image = [UIImage imageWithData:data];
+                });
+            }
+        });
+
+        // 4. العنوان
+        UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(20, 145, cardWidth-40, 30)];
+        title.text = @"يا هلا بيك";
+        title.textColor = [UIColor whiteColor];
+        title.font = [UIFont boldSystemFontOfSize:22];
+        title.textAlignment = NSTextAlignmentCenter;
+        [card addSubview:title];
+
+        // 5. الوصف
+        UILabel *sub = [[UILabel alloc] initWithFrame:CGRectMake(20, 180, cardWidth-40, 60)];
+        sub.text = @"تابعنا للمزيد من التطبيقات المميزة ، ولا تتردد بالتواصل مع المطور لطرح اي سؤال او حل مشكلة ❤️ .";
+        sub.textColor = [UIColor lightGrayColor];
+        sub.font = [UIFont systemFontOfSize:13.5];
+        sub.textAlignment = NSTextAlignmentCenter;
+        sub.numberOfLines = 0;
+        [card addSubview:sub];
+
+        // خط فاصل
+        UIView *sep = [[UIView alloc] initWithFrame:CGRectMake(20, 255, cardWidth-40, 1)];
+        sep.backgroundColor = [UIColor colorWithWhite:1 alpha:0.1];
+        [card addSubview:sep];
+
+        // 6. زر التفعيل والنص (لا تظهر مجدداً)
+        UILabel *switchLbl = [[UILabel alloc] initWithFrame:CGRectMake(20, 270, cardWidth-90, 30)];
+        switchLbl.text = @"لا تظهر هذه الرسالة مجدداً 🔔";
+        switchLbl.textColor = [UIColor whiteColor];
+        switchLbl.font = [UIFont systemFontOfSize:14];
+        switchLbl.textAlignment = NSTextAlignmentLeft;
+        [card addSubview:switchLbl];
+
+        self.toggleSwitch = [[UISwitch alloc] initWithFrame:CGRectMake(cardWidth - 70, 270, 50, 30)];
+        self.toggleSwitch.onTintColor = [UIColor colorWithRed:0.25 green:0.4 blue:0.95 alpha:1.0];
+        [card addSubview:self.toggleSwitch];
+
+        // 7. الأزرار
+        CGFloat btnY = 320;
+
+        UIButton *tgBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+        tgBtn.frame = CGRectMake(20, btnY, cardWidth-40, 45);
+        tgBtn.backgroundColor = [UIColor colorWithRed:0.25 green:0.4 blue:0.95 alpha:1.0]; // أزرق
+        [tgBtn setTitle:@"قـناتـنـا ✈️" forState:UIControlStateNormal];
+        [tgBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+        tgBtn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+        tgBtn.layer.cornerRadius = 12;
+        [tgBtn addTarget:self action:@selector(openTg) forControlEvents:UIControlEventTouchUpInside];
+        [card addSubview:tgBtn];
+        btnY += 55;
+
+        UIButton *devBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+        devBtn.frame = CGRectMake(20, btnY, cardWidth-40, 45);
+        devBtn.backgroundColor = [UIColor colorWithRed:0.25 green:0.4 blue:0.95 alpha:1.0]; // أزرق
+        [devBtn setTitle:@"المطـور 👨🏻‍💻" forState:UIControlStateNormal];
+        [devBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+        devBtn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+        devBtn.layer.cornerRadius = 12;
+        [devBtn addTarget:self action:@selector(openDev) forControlEvents:UIControlEventTouchUpInside];
+        [card addSubview:devBtn];
+        btnY += 55;
+
+        UIButton *dismissBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+        dismissBtn.frame = CGRectMake(20, btnY, cardWidth-40, 45);
+        dismissBtn.backgroundColor = [UIColor colorWithWhite:1 alpha:0.1]; // شفاف
+        [dismissBtn setTitle:@"شكراً ❤️" forState:UIControlStateNormal];
+        [dismissBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+        dismissBtn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+        dismissBtn.layer.cornerRadius = 12;
+        [dismissBtn addTarget:self action:@selector(dismissAlert) forControlEvents:UIControlEventTouchUpInside];
+        [card addSubview:dismissBtn];
+    }
+    return self;
 }
+
+- (void)openTg {
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/hassanyIPA"] options:@{} completionHandler:nil];
+}
+
+- (void)openDev {
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/OM_G9"] options:@{} completionHandler:nil];
+}
+
+- (void)dismissAlert {
+    if (self.toggleSwitch.isOn) {
+        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:kHideHassanyWelcome];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+    }
+    [UIView animateWithDuration:0.3 animations:^{
+        self.alpha = 0.0;
+        self.transform = CGAffineTransformMakeScale(0.9, 0.9);
+    } completion:^(BOOL finished) {
+        [self removeFromSuperview];
+    }];
+}
+
+- (void)animateIn {
+    self.alpha = 0.0;
+    self.transform = CGAffineTransformMakeScale(1.1, 1.1);
+    [UIView animateWithDuration:0.3 animations:^{
+        self.alpha = 1.0;
+        self.transform = CGAffineTransformIdentity;
+    }];
+}
+@end
+
+// تشغيل الشاشة عند فتح التطبيق
+%hook UIApplication
+- (void)applicationDidBecomeActive:(UIApplication *)application {
+    %orig;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [HassanyWelcomeAlert show];
+        });
+    });
+}
+%end
