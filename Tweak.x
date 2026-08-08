@@ -15,20 +15,39 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
     if ([[NSUserDefaults standardUserDefaults] boolForKey:kHideHassanyWelcome]) return;
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        UIWindow *window = nil;
+        UIWindow *targetWindow = nil;
+
+        // الطريقة الحديثة والآمنة لجلب النافذة (بدون استخدام دالة keyWindow الممنوعة)
         if (@available(iOS 13.0, *)) {
-            for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
-                if (scene.activationState == UISceneActivationStateForegroundActive) {
-                    window = scene.windows.firstObject;
+            for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+                if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
+                    UIWindowScene *windowScene = (UIWindowScene *)scene;
+                    targetWindow = windowScene.windows.firstObject; // نأخذ أول نافذة كاحتياط
+                    // نبحث عن النافذة الفعالة بطريقة برمجية سليمة
+                    for (UIWindow *w in windowScene.windows) {
+                        if (w.isKeyWindow) {
+                            targetWindow = w;
+                            break;
+                        }
+                    }
                     break;
                 }
             }
         }
-        if (!window) window = [UIApplication sharedApplication].keyWindow;
-        if (!window) return;
+        
+        // الطريقة البديلة الآمنة إذا لم نجد نافذة
+        if (!targetWindow) {
+            targetWindow = [[UIApplication sharedApplication] delegate].window;
+        }
+        if (!targetWindow) {
+            targetWindow = [[UIApplication sharedApplication].windows firstObject];
+        }
 
-        HassanyWelcomeAlert *alert = [[HassanyWelcomeAlert alloc] initWithFrame:window.bounds];
-        [window addSubview:alert];
+        // إذا فشل كل شيء، نوقف العملية حتى لا يكرش التطبيق
+        if (!targetWindow) return;
+
+        HassanyWelcomeAlert *alert = [[HassanyWelcomeAlert alloc] initWithFrame:targetWindow.bounds];
+        [targetWindow addSubview:alert];
         [alert animateIn];
     });
 }
@@ -36,7 +55,7 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
-        // 1. الخلفية الشفافة والدوائر المتحركة (Animated Blur Background)
+        // 1. الخلفية الشفافة والدوائر المتحركة
         self.backgroundColor = [UIColor colorWithWhite:0 alpha:0.4];
 
         UIView *purpleCircle = [[UIView alloc] initWithFrame:CGRectMake(-50, -50, 300, 300)];
@@ -63,7 +82,7 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
         CGFloat cardWidth = frame.size.width * 0.85;
         UIView *card = [[UIView alloc] initWithFrame:CGRectMake(0, 0, cardWidth, 480)];
         card.center = self.center;
-        card.backgroundColor = [UIColor colorWithRed:0.15 green:0.15 blue:0.18 alpha:1.0]; // لون رصاصي غامق مقارب للصورة
+        card.backgroundColor = [UIColor colorWithRed:0.15 green:0.15 blue:0.18 alpha:1.0]; // لون مقارب للصورة
         card.layer.cornerRadius = 22;
         card.clipsToBounds = YES;
         card.layer.borderWidth = 1;
@@ -127,7 +146,7 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
 
         UIButton *tgBtn = [UIButton buttonWithType:UIButtonTypeSystem];
         tgBtn.frame = CGRectMake(20, btnY, cardWidth-40, 45);
-        tgBtn.backgroundColor = [UIColor colorWithRed:0.25 green:0.4 blue:0.95 alpha:1.0]; // أزرق
+        tgBtn.backgroundColor = [UIColor colorWithRed:0.25 green:0.4 blue:0.95 alpha:1.0]; 
         [tgBtn setTitle:@"قـناتـنـا ✈️" forState:UIControlStateNormal];
         [tgBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
         tgBtn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
@@ -138,7 +157,7 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
 
         UIButton *devBtn = [UIButton buttonWithType:UIButtonTypeSystem];
         devBtn.frame = CGRectMake(20, btnY, cardWidth-40, 45);
-        devBtn.backgroundColor = [UIColor colorWithRed:0.25 green:0.4 blue:0.95 alpha:1.0]; // أزرق
+        devBtn.backgroundColor = [UIColor colorWithRed:0.25 green:0.4 blue:0.95 alpha:1.0]; 
         [devBtn setTitle:@"المطـور 👨🏻‍💻" forState:UIControlStateNormal];
         [devBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
         devBtn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
@@ -149,7 +168,7 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
 
         UIButton *dismissBtn = [UIButton buttonWithType:UIButtonTypeSystem];
         dismissBtn.frame = CGRectMake(20, btnY, cardWidth-40, 45);
-        dismissBtn.backgroundColor = [UIColor colorWithWhite:1 alpha:0.1]; // شفاف
+        dismissBtn.backgroundColor = [UIColor colorWithWhite:1 alpha:0.1]; 
         [dismissBtn setTitle:@"شكراً ❤️" forState:UIControlStateNormal];
         [dismissBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
         dismissBtn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
