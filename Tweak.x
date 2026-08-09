@@ -17,13 +17,12 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow *targetWindow = nil;
 
-        // الطريقة الحديثة والآمنة لجلب النافذة (بدون استخدام دالة keyWindow الممنوعة)
+        // الطريقة الحديثة والآمنة لجلب النافذة 
         if (@available(iOS 13.0, *)) {
             for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
                 if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
                     UIWindowScene *windowScene = (UIWindowScene *)scene;
-                    targetWindow = windowScene.windows.firstObject; // نأخذ أول نافذة كاحتياط
-                    // نبحث عن النافذة الفعالة بطريقة برمجية سليمة
+                    targetWindow = windowScene.windows.firstObject; 
                     for (UIWindow *w in windowScene.windows) {
                         if (w.isKeyWindow) {
                             targetWindow = w;
@@ -35,7 +34,6 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
             }
         }
         
-        // الطريقة البديلة الآمنة إذا لم نجد نافذة
         if (!targetWindow) {
             targetWindow = [[UIApplication sharedApplication] delegate].window;
         }
@@ -43,7 +41,6 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
             targetWindow = [[UIApplication sharedApplication].windows firstObject];
         }
 
-        // إذا فشل كل شيء، نوقف العملية حتى لا يكرش التطبيق
         if (!targetWindow) return;
 
         HassanyWelcomeAlert *alert = [[HassanyWelcomeAlert alloc] initWithFrame:targetWindow.bounds];
@@ -82,7 +79,7 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
         CGFloat cardWidth = frame.size.width * 0.85;
         UIView *card = [[UIView alloc] initWithFrame:CGRectMake(0, 0, cardWidth, 480)];
         card.center = self.center;
-        card.backgroundColor = [UIColor colorWithRed:0.15 green:0.15 blue:0.18 alpha:1.0]; // لون مقارب للصورة
+        card.backgroundColor = [UIColor colorWithRed:0.15 green:0.15 blue:0.18 alpha:1.0]; 
         card.layer.cornerRadius = 22;
         card.clipsToBounds = YES;
         card.layer.borderWidth = 1;
@@ -210,10 +207,12 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
 }
 @end
 
-// تشغيل الشاشة عند فتح التطبيق
-%hook UIApplication
-- (void)applicationDidBecomeActive:(UIApplication *)application {
+// تشغيل الشاشة غصباً عن التطبيق أول ما تظهر واجهته
+%hook UIViewController
+
+- (void)viewDidAppear:(BOOL)animated {
     %orig;
+    
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -221,4 +220,5 @@ static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed";
         });
     });
 }
+
 %end
