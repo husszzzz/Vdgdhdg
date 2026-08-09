@@ -1,6 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
-
+#import <QuartzCore/CAFilter.h>
 static NSString *const kHideHassanyWelcome = @"HassanyWelcomeDismissed_v2";
 
 // ==========================================
