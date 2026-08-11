@@ -206,30 +206,57 @@
 
 
 // ==========================================
-// 2. الهوك (Hook) لزرع الإيماءة المخفية
+// 2. الهوك (Hook) وكاسر حماية اللمس (Delegate)
 // ==========================================
+
+// تعريف كاسر الحماية
+@interface HassanyGestureDelegate : NSObject <UIGestureRecognizerDelegate>
++ (instancetype)sharedInstance;
+@end
+
+@implementation HassanyGestureDelegate
++ (instancetype)sharedInstance {
+    static HassanyGestureDelegate *shared = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        shared = [[self alloc] init];
+    });
+    return shared;
+}
+// الدالة السحرية اللي تجبر الإيماءة تشتغل بكل مكان
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return YES;
+}
+@end
+
+
 %hook UIWindow
 
 - (void)layoutSubviews {
     %orig;
     
-    // منع تكرار الإيماءة باستخدام Tag
-    if (![self viewWithTag:999911]) {
+    // التأكد من زرع الإيماءة بالنافذة الرئيسية فقط
+    if (self.windowLevel == UIWindowLevelNormal && ![self viewWithTag:999911]) {
         UIView *indicator = [[UIView alloc] initWithFrame:CGRectZero];
         indicator.tag = 999911;
         [self addSubview:indicator];
         
-        // الإيماءة: إصبعين + نقرتين
+        // الإيماءة: 3 أصابع + 3 نقرات
         UITapGestureRecognizer *secretTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(hassany_showMenu)];
-        secretTap.numberOfTouchesRequired = 2; 
-        secretTap.numberOfTapsRequired = 2; 
+        secretTap.numberOfTouchesRequired = 3; 
+        secretTap.numberOfTapsRequired = 3; 
+        
+        // ربط الإيماءة بكاسر الحماية
+        secretTap.delegate = [HassanyGestureDelegate sharedInstance];
+        secretTap.cancelsTouchesInView = NO; // منع التطبيق من إلغاء لمساتك
+        
         [self addGestureRecognizer:secretTap];
     }
 }
 
 %new
 - (void)hassany_showMenu {
-    UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    UIViewController *topController = nil;
     
     // دعم iOS 13+ لصيد الواجهة الفعالة
     if (@available(iOS 13.0, *)) {
@@ -245,12 +272,17 @@
         }
     }
     
-    // الصعود لأعلى واجهة مفتوحة لعرض القائمة فوق كل شيء
+    // حل احتياطي
+    if (!topController) {
+        topController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    }
+    
+    // الصعود لأعلى واجهة
     while (topController.presentedViewController) {
         topController = topController.presentedViewController;
     }
     
-    // عرض الواجهة إذا لم تكن معروضة مسبقاً
+    // عرض الواجهة إذا لم تكن معروضة
     if (topController && ![topController isKindOfClass:NSClassFromString(@"HassanyVIPMenuVC")]) {
         HassanyVIPMenuVC *vipMenu = [[HassanyVIPMenuVC alloc] init];
         vipMenu.modalPresentationStyle = UIModalPresentationOverFullScreen; 
