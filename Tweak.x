@@ -1,5 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
+#import <QuartzCore/CAFilter.h>
 
 // ==========================================
 // إعدادات قاعدة البيانات (Supabase)
@@ -8,26 +9,56 @@
 #define SUPABASE_ANON_KEY @"sb_publishable_gtetovKtVETv8LtRu4iWkw_dEUNvQPE"
 
 // ==========================================
-// واجهة تسجيل الدخول وحماية الـ VIP
+// 1. الدالة السحرية لجلب النافذة الفعالة (من كودك)
 // ==========================================
-@interface HassanyAuthVC : UIViewController <UITextFieldDelegate>
+UIWindow *GetUniversalWindow() {
+    if (@available(iOS 13.0, *)) {
+        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
+                UIWindowScene *windowScene = (UIWindowScene *)scene;
+                for (UIWindow *w in windowScene.windows) {
+                    if (w.isKeyWindow) return w;
+                }
+                return windowScene.windows.firstObject;
+            }
+        }
+    }
+    return [[UIApplication sharedApplication].windows firstObject];
+}
+
+// ==========================================
+// 2. كلاس منظومة الـ VIP كـ (UIView) إجباري
+// ==========================================
+@interface HassanyVIPAuthView : UIView <UITextFieldDelegate>
 @property (nonatomic, strong) UIView *animatedBgView;
 @property (nonatomic, strong) UIStackView *mainStack;
 @property (nonatomic, strong) UITextField *codeField;
 @property (nonatomic, strong) UIActivityIndicatorView *spinner;
 @end
 
-@implementation HassanyAuthVC
+@implementation HassanyVIPAuthView
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    self.view.backgroundColor = [UIColor clearColor];
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self setupVIPUI];
+    }
+    return self;
+}
+
+// لإخفاء الكيبورد عند الضغط على الشاشة
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [self endEditing:YES];
+}
+
+- (void)setupVIPUI {
+    self.backgroundColor = [UIColor clearColor];
     
     // 1. الخلفية المتحركة (Animated Pulsing Background)
-    self.animatedBgView = [[UIView alloc] initWithFrame:self.view.bounds];
+    self.animatedBgView = [[UIView alloc] initWithFrame:self.bounds];
     self.animatedBgView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.animatedBgView.backgroundColor = [UIColor colorWithRed:0.2 green:0.0 blue:0.0 alpha:1.0];
-    [self.view addSubview:self.animatedBgView];
+    [self addSubview:self.animatedBgView];
     
     [UIView animateWithDuration:4.0 delay:0 options:UIViewAnimationOptionAutoreverse | UIViewAnimationOptionRepeat | UIViewAnimationOptionAllowUserInteraction animations:^{
         self.animatedBgView.backgroundColor = [UIColor colorWithRed:0.05 green:0.0 blue:0.0 alpha:1.0];
@@ -35,26 +66,23 @@
     
     UIBlurEffect *blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
     UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blur];
-    blurView.frame = self.view.bounds;
+    blurView.frame = self.bounds;
     blurView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    [self.view addSubview:blurView];
+    [self addSubview:blurView];
 
-    // 2. الحاوية الرئيسية المتجاوبة (AutoLayout StackView)
+    // 2. الحاوية الرئيسية المتجاوبة (AutoLayout)
     self.mainStack = [[UIStackView alloc] init];
     self.mainStack.axis = UILayoutConstraintAxisVertical;
     self.mainStack.alignment = UIStackViewAlignmentCenter;
     self.mainStack.spacing = 15;
     self.mainStack.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.mainStack];
+    [self addSubview:self.mainStack];
     
     [NSLayoutConstraint activateConstraints:@[
-        [self.mainStack.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
-        [self.mainStack.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor],
-        [self.mainStack.widthAnchor constraintEqualToAnchor:self.view.widthAnchor multiplier:0.85]
+        [self.mainStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor],
+        [self.mainStack.centerYAnchor constraintEqualToAnchor:self.centerYAnchor],
+        [self.mainStack.widthAnchor constraintEqualToAnchor:self.widthAnchor multiplier:0.85]
     ]];
-    
-    // تأكد من أن المكدس فوق جميع العناصر
-    [self.view bringSubviewToFront:self.mainStack];
 
     // 3. صورة القناة
     UIImageView *logoView = [[UIImageView alloc] init];
@@ -78,32 +106,23 @@
         [logoView.heightAnchor constraintEqualToConstant:100]
     ]];
 
-    // 4. النصوص والترحيب (تم تحسينها)
+    // 4. النصوص
     UILabel *subtitle = [[UILabel alloc] init];
     subtitle.text = @"الهـاك تابع لقناه hassanyIPA حصرا فقط";
-    subtitle.textColor = [UIColor yellowColor];  // تغيير اللون للأصفر الفاتح
-    subtitle.font = [UIFont boldSystemFontOfSize:13];
+    subtitle.textColor = [UIColor redColor];
+    subtitle.font = [UIFont boldSystemFontOfSize:12];
     subtitle.textAlignment = NSTextAlignmentCenter;
-    subtitle.backgroundColor = [UIColor colorWithWhite:0 alpha:0.4];  // خلفية شفافة لتحسين القراءة
-    subtitle.layer.cornerRadius = 6;
-    subtitle.clipsToBounds = YES;
-    subtitle.numberOfLines = 1;
     [self.mainStack addArrangedSubview:subtitle];
 
     UILabel *welcomeTitle = [[UILabel alloc] init];
     welcomeTitle.text = @"مرحبا بك يرجى ادخال كود التفعيل الخاص بك\nيمكنك الشراء حصرا من hassanyIPA";
     welcomeTitle.textColor = [UIColor whiteColor];
-    welcomeTitle.font = [UIFont boldSystemFontOfSize:17];  // تكبير الخط
+    welcomeTitle.font = [UIFont boldSystemFontOfSize:15];
     welcomeTitle.textAlignment = NSTextAlignmentCenter;
-    welcomeTitle.numberOfLines = 0;  // غير محدود لضمان ظهور النص كاملاً
-    welcomeTitle.backgroundColor = [UIColor colorWithWhite:0 alpha:0.5];  // خلفية شفافة داكنة
-    welcomeTitle.layer.cornerRadius = 8;
-    welcomeTitle.clipsToBounds = YES;
-    welcomeTitle.adjustsFontSizeToFitWidth = YES;
-    welcomeTitle.minimumScaleFactor = 0.7;
+    welcomeTitle.numberOfLines = 2;
     [self.mainStack addArrangedSubview:welcomeTitle];
 
-    // 5. حقل إدخال الكود
+    // 5. حقل الكود
     self.codeField = [[UITextField alloc] init];
     self.codeField.translatesAutoresizingMaskIntoConstraints = NO;
     self.codeField.placeholder = @"@hassanyIPA-VIP-XXXXXXX";
@@ -169,12 +188,20 @@
     self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
     self.spinner.color = [UIColor redColor];
     self.spinner.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.spinner];
+    [self addSubview:self.spinner];
     [NSLayoutConstraint activateConstraints:@[
-        [self.spinner.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
+        [self.spinner.centerXAnchor constraintEqualToAnchor:self.centerXAnchor],
         [self.spinner.bottomAnchor constraintEqualToAnchor:self.mainStack.topAnchor constant:-20]
     ]];
     
+    // أنيميشن الظهور
+    self.alpha = 0.0;
+    self.transform = CGAffineTransformMakeScale(1.1, 1.1);
+    [UIView animateWithDuration:0.4 delay:0 usingSpringWithDamping:0.8 initialSpringVelocity:0.5 options:UIViewAnimationOptionCurveEaseOut animations:^{
+        self.alpha = 1.0;
+        self.transform = CGAffineTransformIdentity;
+    } completion:nil];
+
     // الفحص التلقائي
     if (savedCode && savedCode.length > 5) {
         [self checkLicense];
@@ -185,14 +212,15 @@
 - (void)openDev { [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/OM_G9"] options:@{} completionHandler:nil]; }
 
 // ==========================================
-// فحص الكود من السيرفر (نفس الكود الأصلي)
+// الفحص من السيرفر
 // ==========================================
 - (void)checkLicense {
     NSString *code = [self.codeField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
     if (code.length == 0) return;
     
+    [self endEditing:YES];
     [self.spinner startAnimating];
-    self.view.userInteractionEnabled = NO;
+    self.userInteractionEnabled = NO;
     
     NSString *urlStr = [NSString stringWithFormat:@"%@/rest/v1/licenses?code_key=eq.%@&select=*", SUPABASE_URL, code];
     NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlStr]];
@@ -204,7 +232,7 @@
     [[session dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.spinner stopAnimating];
-            self.view.userInteractionEnabled = YES;
+            self.userInteractionEnabled = YES;
             
             if (error || !data) {
                 [self showError:@"حدث خطأ في الاتصال بالسيرفر!"];
@@ -254,7 +282,7 @@
 
 - (void)activateNewCode:(NSDictionary *)license withUUID:(NSString *)uuid code:(NSString *)code {
     [self.spinner startAnimating];
-    self.view.userInteractionEnabled = NO;
+    self.userInteractionEnabled = NO;
     
     int days = [license[@"duration_days"] intValue];
     NSDate *expiryDate = [[NSDate date] dateByAddingTimeInterval:(days * 24 * 60 * 60)];
@@ -275,7 +303,7 @@
     [[[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.spinner stopAnimating];
-            self.view.userInteractionEnabled = YES;
+            self.userInteractionEnabled = YES;
             
             if (error) {
                 [self showError:@"فشل تفعيل الكود، حاول مرة أخرى."];
@@ -289,7 +317,22 @@
 }
 
 // ==========================================
-// واجهة النجاح المذهلة والعداد التنازلي وإغلاق النافذة
+// رسالة الخطأ (Alert)
+// ==========================================
+- (void)showError:(NSString *)msg {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"خطأ ❌" message:msg preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"حسناً" style:UIAlertActionStyleCancel handler:nil]];
+    
+    UIWindow *window = GetUniversalWindow();
+    UIViewController *topController = window.rootViewController;
+    while (topController.presentedViewController) {
+        topController = topController.presentedViewController;
+    }
+    [topController presentViewController:alert animated:YES completion:nil];
+}
+
+// ==========================================
+// النجاح والعداد وإغلاق الواجهة بالكامل (UIView Remove)
 // ==========================================
 - (void)showSuccessAndStartGame:(NSDictionary *)license {
     [[NSUserDefaults standardUserDefaults] setObject:self.codeField.text forKey:@"HassanyVIPCode"];
@@ -300,12 +343,12 @@
         self.mainStack.transform = CGAffineTransformMakeScale(0.8, 0.8);
     }];
     
-    UIView *successView = [[UIView alloc] initWithFrame:self.view.bounds];
+    UIView *successView = [[UIView alloc] initWithFrame:self.bounds];
     successView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     successView.alpha = 0;
-    [self.view addSubview:successView];
+    [self addSubview:successView];
     
-    UIImageView *checkIcon = [[UIImageView alloc] initWithFrame:CGRectMake((self.view.bounds.size.width - 100)/2, self.view.bounds.size.height/2 - 120, 100, 100)];
+    UIImageView *checkIcon = [[UIImageView alloc] initWithFrame:CGRectMake((self.bounds.size.width - 100)/2, self.bounds.size.height/2 - 120, 100, 100)];
     checkIcon.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
     checkIcon.image = [UIImage systemImageNamed:@"checkmark.seal.fill"];
     if (!checkIcon.image) {
@@ -315,7 +358,7 @@
     checkIcon.tintColor = [UIColor greenColor];
     [successView addSubview:checkIcon];
     
-    UILabel *msgLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, checkIcon.frame.origin.y + 120, self.view.bounds.size.width - 40, 60)];
+    UILabel *msgLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, checkIcon.frame.origin.y + 120, self.bounds.size.width - 40, 60)];
     msgLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
     msgLabel.text = @"عاشت ايدك تم بنجاح\nتگدر تستخدم الهاك هسه";
     msgLabel.textColor = [UIColor whiteColor];
@@ -332,7 +375,7 @@
     int hours = (int)diff % (24*3600) / 3600;
     int mins = (int)diff % 3600 / 60;
     
-    UILabel *timeLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, msgLabel.frame.origin.y + 70, self.view.bounds.size.width - 40, 40)];
+    UILabel *timeLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, msgLabel.frame.origin.y + 70, self.bounds.size.width - 40, 40)];
     timeLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
     timeLabel.text = [NSString stringWithFormat:@"الوقت المتبقي: %d يوم و %d ساعة و %d دقيقة", days, hours, mins];
     timeLabel.textColor = [UIColor greenColor];
@@ -344,90 +387,41 @@
         successView.alpha = 1;
     }];
     
+    // بعد 3 ثواني نحذف الواجهة نهائياً حتى ترجع اللعبة طبيعي
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [UIView animateWithDuration:0.5 animations:^{
-            self.view.alpha = 0;
-            self.view.transform = CGAffineTransformMakeScale(1.2, 1.2);
+            self.alpha = 0;
+            self.transform = CGAffineTransformMakeScale(1.2, 1.2);
         } completion:^(BOOL finished) {
-            self.view.window.hidden = YES;
+            [self removeFromSuperview];
         }];
     });
 }
-
-- (void)showError:(NSString *)msg {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"خطأ ❌" message:msg preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"حسناً" style:UIAlertActionStyleCancel handler:nil]];
-    [self presentViewController:alert animated:YES completion:nil];
-}
 @end
 
 
 // ==========================================
-// 🚀 نظام الحقن الصارم (النافذة العائمة الإجبارية)
-// ==========================================
-@interface HassanyVIPInjector : NSObject
-@property (nonatomic, strong) UIWindow *authWindow;
-+ (instancetype)sharedInstance;
-- (void)showAuthScreen;
-@end
-
-@implementation HassanyVIPInjector
-+ (instancetype)sharedInstance {
-    static HassanyVIPInjector *shared = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        shared = [[self alloc] init];
-    });
-    return shared;
-}
-
-- (void)showAuthScreen {
-    if (self.authWindow) return;
-    
-    // محاولة الحصول على النافذة الرئيسية للتطبيق (كحل بديل)
-    UIWindow *mainWindow = nil;
-    if (@available(iOS 13.0, *)) {
-        for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
-            if (scene.activationState == UISceneActivationStateForegroundActive) {
-                mainWindow = scene.windows.firstObject;
-                self.authWindow = [[UIWindow alloc] initWithWindowScene:scene];
-                break;
-            }
-        }
-    }
-    if (!self.authWindow) {
-        self.authWindow = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-    }
-    
-    self.authWindow.windowLevel = UIWindowLevelAlert + 1;
-    self.authWindow.rootViewController = [[HassanyAuthVC alloc] init];
-    self.authWindow.backgroundColor = [UIColor clearColor];
-    [self.authWindow makeKeyAndVisible];
-    
-    // في حال لم تظهر النافذة، جرب إضافتها كنافذة فرعية على النافذة الرئيسية
-    if (mainWindow && !self.authWindow.isKeyWindow) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            if (!self.authWindow.isKeyWindow) {
-                [mainWindow addSubview:self.authWindow];
-                self.authWindow.frame = mainWindow.bounds;
-                self.authWindow.hidden = NO;
-            }
-        });
-    }
-}
-@end
-
-// ==========================================
-// تفعيل الحقن بمجرد بدء اللعبة
+// 3. نظام الحقن بالاعتماد على كودك الناجح
 // ==========================================
 %ctor {
+    // ننتظر التطبيق يفتح ويصير جاهز 100%
     [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidBecomeActiveNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification * _Nonnull note) {
-        static dispatch_once_t once;
-        dispatch_once(&once, ^{
-            // تأخير أطول للتأكد من استقرار التطبيق
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                [[HassanyVIPInjector sharedInstance] showAuthScreen];
+        
+        static dispatch_once_t onceToken;
+        dispatch_once(&onceToken, ^{
+            // نتأخر ثانية وحدة حتى نعبر شاشة التحميل
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                
+                UIWindow *window = GetUniversalWindow();
+                if (window) {
+                    // هنا السر: نضيف واجهتنا كـ Subview مباشر مو كـ ViewController
+                    HassanyVIPAuthView *authView = [[HassanyVIPAuthView alloc] initWithFrame:window.bounds];
+                    authView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+                    [window addSubview:authView];
+                }
+                
             });
         });
+        
     }];
 }
