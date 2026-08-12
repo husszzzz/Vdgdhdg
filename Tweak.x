@@ -23,7 +23,7 @@
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor clearColor];
     
-    // 1. الخلفية المتحركة (Animated Pulsing Background)
+    // 1. الخلفية المتحركة
     self.animatedBgView = [[UIView alloc] initWithFrame:self.view.bounds];
     self.animatedBgView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.animatedBgView.backgroundColor = [UIColor colorWithRed:0.2 green:0.0 blue:0.0 alpha:1.0];
@@ -39,7 +39,7 @@
     blurView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [self.view addSubview:blurView];
 
-    // 2. الحاوية الرئيسية المتجاوبة (AutoLayout StackView)
+    // 2. الحاوية الرئيسية
     self.mainStack = [[UIStackView alloc] init];
     self.mainStack.axis = UILayoutConstraintAxisVertical;
     self.mainStack.alignment = UIStackViewAlignmentCenter;
@@ -75,7 +75,7 @@
         [logoView.heightAnchor constraintEqualToConstant:100]
     ]];
 
-    // 4. النصوص والترحيب
+    // 4. النصوص
     UILabel *subtitle = [[UILabel alloc] init];
     subtitle.text = @"الهـاك تابع لقناه hassanyIPA حصرا فقط";
     subtitle.textColor = [UIColor redColor];
@@ -91,7 +91,7 @@
     welcomeTitle.numberOfLines = 2;
     [self.mainStack addArrangedSubview:welcomeTitle];
 
-    // 5. حقل إدخال الكود
+    // 5. حقل الكود
     self.codeField = [[UITextField alloc] init];
     self.codeField.translatesAutoresizingMaskIntoConstraints = NO;
     self.codeField.placeholder = @"@hassanyIPA-VIP-XXXXXXX";
@@ -126,7 +126,7 @@
         [loginBtn.heightAnchor constraintEqualToConstant:50]
     ]];
 
-    // 7. أزرار القناة والمطور
+    // 7. أزرار القنوات
     UIStackView *btnStack = [[UIStackView alloc] init];
     btnStack.axis = UILayoutConstraintAxisHorizontal;
     btnStack.spacing = 15;
@@ -163,7 +163,7 @@
         [self.spinner.bottomAnchor constraintEqualToAnchor:self.mainStack.topAnchor constant:-20]
     ]];
     
-    // الفحص التلقائي
+    // تسجيل الدخول التلقائي
     if (savedCode && savedCode.length > 5) {
         [self checkLicense];
     }
@@ -173,7 +173,7 @@
 - (void)openDev { [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/OM_G9"] options:@{} completionHandler:nil]; }
 
 // ==========================================
-// فحص الكود من السيرفر
+// الفحص من السيرفر
 // ==========================================
 - (void)checkLicense {
     NSString *code = [self.codeField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
@@ -277,7 +277,7 @@
 }
 
 // ==========================================
-// واجهة النجاح المذهلة والعداد التنازلي وإغلاق النافذة
+// النجاح والعداد وإغلاق الواجهة
 // ==========================================
 - (void)showSuccessAndStartGame:(NSDictionary *)license {
     [[NSUserDefaults standardUserDefaults] setObject:self.codeField.text forKey:@"HassanyVIPCode"];
@@ -297,7 +297,6 @@
     checkIcon.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
     checkIcon.image = [UIImage systemImageNamed:@"checkmark.seal.fill"];
     if (!checkIcon.image) {
-        // بديل للإصدارات الأقدم من iOS 13
         checkIcon.backgroundColor = [UIColor greenColor];
         checkIcon.layer.cornerRadius = 50;
     }
@@ -333,13 +332,12 @@
         successView.alpha = 1;
     }];
     
-    // 🚀 الإغلاق الشامل والعودة للعبة
+    // بعد 3 ثواني نُخفي نافذتنا بالكامل حتى يكمل التطبيق شغله
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [UIView animateWithDuration:0.5 animations:^{
             self.view.alpha = 0;
             self.view.transform = CGAffineTransformMakeScale(1.2, 1.2);
         } completion:^(BOOL finished) {
-            // هنا السر: نخفي النافذة مالتنا نهائياً حتى ترجع اللعبة تشتغل
             self.view.window.hidden = YES;
         }];
     });
@@ -354,12 +352,12 @@
 
 
 // ==========================================
-// 🚀 نظام الحقن الصارم (النافذة العائمة الإجبارية)
+// 🚀 نظام اصطياد الشاشة الجذري (Scene & Window Catcher)
 // ==========================================
 @interface HassanyVIPInjector : NSObject
 @property (nonatomic, strong) UIWindow *authWindow;
 + (instancetype)sharedInstance;
-- (void)showAuthScreen;
+- (void)showAuthScreenWithAppWindow:(UIWindow *)appWindow;
 @end
 
 @implementation HassanyVIPInjector
@@ -372,46 +370,44 @@
     return shared;
 }
 
-- (void)showAuthScreen {
-    if (self.authWindow) return; // لمنع التكرار
+- (void)showAuthScreenWithAppWindow:(UIWindow *)appWindow {
+    if (self.authWindow) return; // حتى ما تطلع أكثر من مرة
     
-    // 1. إنشاء نافذة خاصة تدعم iOS 13 فما فوق (Scenes)
+    // استخدام Scene الخاص بالتطبيق (حتى لا يتم إخفاؤها)
     if (@available(iOS 13.0, *)) {
-        for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
-            if (scene.activationState == UISceneActivationStateForegroundActive) {
-                self.authWindow = [[UIWindow alloc] initWithWindowScene:scene];
-                break;
-            }
+        if (appWindow.windowScene) {
+            self.authWindow = [[UIWindow alloc] initWithWindowScene:appWindow.windowScene];
+        } else {
+            self.authWindow = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
         }
-    }
-    
-    // للإصدارات الأقدم إذا لم يتم العثور على Scene
-    if (!self.authWindow) {
+    } else {
         self.authWindow = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
     }
     
-    // 2. السر هنا: إعطاء النافذة أعلى مستوى ممكن (أعلى من اللعبة نفسها)
-    self.authWindow.windowLevel = UIWindowLevelAlert + 1;
+    // أعلى مستوى حماية للنافذة حتى تغطي كل شيء
+    self.authWindow.windowLevel = UIWindowLevelAlert + 100;
     self.authWindow.rootViewController = [[HassanyAuthVC alloc] init];
     self.authWindow.backgroundColor = [UIColor clearColor];
-    
-    // 3. فرض إظهار النافذة
     [self.authWindow makeKeyAndVisible];
 }
 @end
 
 // ==========================================
-// تفعيل الحقن بمجرد بدء اللعبة
+// الـ Hook الأقوى في عالم الـ Theos
 // ==========================================
-%ctor {
-    // ننتظر التطبيق حتى يصبح Active ثم نفرض نافذتنا
-    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidBecomeActiveNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification * _Nonnull note) {
-        static dispatch_once_t once;
-        dispatch_once(&once, ^{
-            // تأخير بسيط للتأكد من تخطي شاشات اللعبة الأولية
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                [[HassanyVIPInjector sharedInstance] showAuthScreen];
+%hook UIWindow
+- (void)makeKeyAndVisible {
+    %orig;
+    
+    // نمنع حقن الواجهة بنوافذ الكيبورد أو الإشعارات
+    if (![self isKindOfClass:NSClassFromString(@"UITextEffectsWindow")] && self.windowLevel == UIWindowLevelNormal) {
+        static dispatch_once_t onceToken;
+        dispatch_once(&onceToken, ^{
+            // نتأخر ثانيتين بس حتى نتأكد التطبيق رسم شاشته، وبعدين نضربه
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [[HassanyVIPInjector sharedInstance] showAuthScreenWithAppWindow:self];
             });
         });
-    }];
+    }
 }
+%end
