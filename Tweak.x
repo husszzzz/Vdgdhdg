@@ -101,6 +101,7 @@
     self.codeField.layer.cornerRadius = 10;
     self.codeField.layer.borderWidth = 1;
     self.codeField.layer.borderColor = [UIColor redColor].CGColor;
+    
     // استرجاع الكود المحفوظ إن وجد
     NSString *savedCode = [[NSUserDefaults standardUserDefaults] objectForKey:@"HassanyVIPCode"];
     if (savedCode) self.codeField.text = savedCode;
@@ -288,7 +289,7 @@
 // واجهة النجاح المذهلة والعداد التنازلي
 // ==========================================
 - (void)showSuccessAndStartGame:(NSDictionary *)license {
-    // حفظ الكود حتى ما يطلبه مرة ثانية
+    // حفظ الكود
     [[NSUserDefaults standardUserDefaults] setObject:self.codeField.text forKey:@"HassanyVIPCode"];
     [[NSUserDefaults standardUserDefaults] synchronize];
     
@@ -319,7 +320,7 @@
     msgLabel.textAlignment = NSTextAlignmentCenter;
     [successView addSubview:msgLabel];
     
-    // حساب المدة المتبقية وعرضها
+    // حساب المدة المتبقية
     NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
     formatter.dateFormat = @"yyyy-MM-dd'T'HH:mm:ssZZZZZ";
     NSDate *expiryDate = [formatter dateFromString:license[@"expiry_date"]];
@@ -341,7 +342,7 @@
         successView.alpha = 1;
     }];
     
-    // إغلاق الواجهة بعد 3 ثواني ليدخل اللاعب للعبة
+    // إغلاق الواجهة بعد 3 ثواني
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [UIView animateWithDuration:0.5 animations:^{
             self.view.alpha = 0;
@@ -362,31 +363,72 @@
 
 
 // ==========================================
-// حقن الدايليب (Hook) ليعمل كجدار حماية إجباري
+// مراقب تشغيل التطبيق (The Launcher)
 // ==========================================
-%hook UIWindow
+@interface HassanyStartupManager : NSObject
++ (instancetype)sharedInstance;
+- (void)showAuthScreen;
+@end
 
-- (void)layoutSubviews {
-    %orig;
-    
-    // نضمن أن الشاشة تظهر مرة واحدة فقط عند تشغيل اللعبة
-    if (self.windowLevel == UIWindowLevelNormal && ![self viewWithTag:888822]) {
-        UIView *tagView = [[UIView alloc] initWithFrame:CGRectZero];
-        tagView.tag = 888822;
-        [self addSubview:tagView];
-        
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            UIViewController *topController = self.rootViewController;
-            while (topController.presentedViewController) {
-                topController = topController.presentedViewController;
-            }
-            
-            if (topController && ![topController isKindOfClass:[HassanyAuthVC class]]) {
-                HassanyAuthVC *authVC = [[HassanyAuthVC alloc] init];
-                authVC.modalPresentationStyle = UIModalPresentationOverFullScreen;
-                [topController presentViewController:authVC animated:NO completion:nil];
-            }
+@implementation HassanyStartupManager
++ (instancetype)sharedInstance {
+    static HassanyStartupManager *shared = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        shared = [[self alloc] init];
+        // ننتظر التطبيق لحد ما يفتح بالكامل وتستقر الواجهة
+        [[NSNotificationCenter defaultCenter] addObserver:shared selector:@selector(appDidBecomeActive) name:UIApplicationDidBecomeActiveNotification object:nil];
+    });
+    return shared;
+}
+
+- (void)appDidBecomeActive {
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        // تأخير ثانية وحدة حتى نتجاوز شاشة التحميل مال اللعبة
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self showAuthScreen];
         });
+    });
+}
+
+- (void)showAuthScreen {
+    UIViewController *topController = nil;
+    
+    // دعم iOS 13+ لاصطياد الواجهة الفعالة
+    if (@available(iOS 13.0, *)) {
+        for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if (scene.activationState == UISceneActivationStateForegroundActive) {
+                for (UIWindow *window in scene.windows) {
+                    if (window.isKeyWindow) {
+                        topController = window.rootViewController;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    // للأنظمة القديمة أو كحل بديل
+    if (!topController) {
+        topController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    }
+    
+    // الصعود لأعلى واجهة (حتى نتخطى كل قوائم اللعبة)
+    while (topController.presentedViewController) {
+        topController = topController.presentedViewController;
+    }
+    
+    // عرض رسالة التفعيل
+    if (topController && ![topController isKindOfClass:[HassanyAuthVC class]]) {
+        HassanyAuthVC *authVC = [[HassanyAuthVC alloc] init];
+        authVC.modalPresentationStyle = UIModalPresentationOverFullScreen;
+        [topController presentViewController:authVC animated:YES completion:nil];
     }
 }
-%end
+@end
+
+// تشغيل المراقب تلقائياً أول ما ينحقن الدايليب
+%ctor {
+    [HassanyStartupManager sharedInstance];
+}
