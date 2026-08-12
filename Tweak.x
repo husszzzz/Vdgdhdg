@@ -21,7 +21,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.view.backgroundColor = [UIColor blackColor];
+    self.view.backgroundColor = [UIColor clearColor];
     
     // 1. الخلفية المتحركة (Animated Pulsing Background)
     self.animatedBgView = [[UIView alloc] initWithFrame:self.view.bounds];
@@ -102,7 +102,6 @@
     self.codeField.layer.borderWidth = 1;
     self.codeField.layer.borderColor = [UIColor redColor].CGColor;
     
-    // استرجاع الكود المحفوظ إن وجد
     NSString *savedCode = [[NSUserDefaults standardUserDefaults] objectForKey:@"HassanyVIPCode"];
     if (savedCode) self.codeField.text = savedCode;
     
@@ -155,7 +154,6 @@
     [devBtn addTarget:self action:@selector(openDev) forControlEvents:UIControlEventTouchUpInside];
     [btnStack addArrangedSubview:devBtn];
     
-    // مؤشر التحميل (Spinner)
     self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
     self.spinner.color = [UIColor redColor];
     self.spinner.translatesAutoresizingMaskIntoConstraints = NO;
@@ -165,7 +163,7 @@
         [self.spinner.bottomAnchor constraintEqualToAnchor:self.mainStack.topAnchor constant:-20]
     ]];
     
-    // الفحص التلقائي عند بدء التشغيل
+    // الفحص التلقائي
     if (savedCode && savedCode.length > 5) {
         [self checkLicense];
     }
@@ -175,7 +173,7 @@
 - (void)openDev { [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/OM_G9"] options:@{} completionHandler:nil]; }
 
 // ==========================================
-// المنطق والاتصال بقاعدة البيانات (API Request)
+// فحص الكود من السيرفر
 // ==========================================
 - (void)checkLicense {
     NSString *code = [self.codeField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
@@ -213,14 +211,12 @@
             NSString *dbDeviceId = license[@"device_id"];
             NSString *currentDeviceUUID = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
             
-            // 1. فحص حالة الكود
             if ([status isEqualToString:@"disabled"]) {
                 [self showError:@"هذا الكود تم إيقافه من قبل الإدارة!"];
                 [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"HassanyVIPCode"];
                 return;
             }
             
-            // 2. فحص تاريخ الانتهاء
             if (license[@"expiry_date"] != [NSNull null]) {
                 NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
                 formatter.dateFormat = @"yyyy-MM-dd'T'HH:mm:ssZ";
@@ -232,7 +228,6 @@
                 }
             }
             
-            // 3. فحص الجهاز (Binding)
             if (dbDeviceId == nil || [dbDeviceId isKindOfClass:[NSNull class]] || dbDeviceId.length == 0) {
                 [self activateNewCode:license withUUID:currentDeviceUUID code:code];
             } else if ([dbDeviceId isEqualToString:currentDeviceUUID]) {
@@ -282,7 +277,7 @@
 }
 
 // ==========================================
-// واجهة النجاح المذهلة والعداد التنازلي
+// واجهة النجاح المذهلة والعداد التنازلي وإغلاق النافذة
 // ==========================================
 - (void)showSuccessAndStartGame:(NSDictionary *)license {
     [[NSUserDefaults standardUserDefaults] setObject:self.codeField.text forKey:@"HassanyVIPCode"];
@@ -301,6 +296,11 @@
     UIImageView *checkIcon = [[UIImageView alloc] initWithFrame:CGRectMake((self.view.bounds.size.width - 100)/2, self.view.bounds.size.height/2 - 120, 100, 100)];
     checkIcon.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
     checkIcon.image = [UIImage systemImageNamed:@"checkmark.seal.fill"];
+    if (!checkIcon.image) {
+        // بديل للإصدارات الأقدم من iOS 13
+        checkIcon.backgroundColor = [UIColor greenColor];
+        checkIcon.layer.cornerRadius = 50;
+    }
     checkIcon.tintColor = [UIColor greenColor];
     [successView addSubview:checkIcon];
     
@@ -333,12 +333,14 @@
         successView.alpha = 1;
     }];
     
+    // 🚀 الإغلاق الشامل والعودة للعبة
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [UIView animateWithDuration:0.5 animations:^{
             self.view.alpha = 0;
             self.view.transform = CGAffineTransformMakeScale(1.2, 1.2);
         } completion:^(BOOL finished) {
-            [self dismissViewControllerAnimated:NO completion:nil];
+            // هنا السر: نخفي النافذة مالتنا نهائياً حتى ترجع اللعبة تشتغل
+            self.view.window.hidden = YES;
         }];
     });
 }
@@ -352,12 +354,12 @@
 
 
 // ==========================================
-// 🚀 نظام الحقن الجديد (الرادار المضمون 100%)
+// 🚀 نظام الحقن الصارم (النافذة العائمة الإجبارية)
 // ==========================================
 @interface HassanyVIPInjector : NSObject
-@property (nonatomic, strong) NSTimer *radarTimer;
+@property (nonatomic, strong) UIWindow *authWindow;
 + (instancetype)sharedInstance;
-- (void)startRadar;
+- (void)showAuthScreen;
 @end
 
 @implementation HassanyVIPInjector
@@ -370,55 +372,46 @@
     return shared;
 }
 
-- (void)startRadar {
-    // الدايليب راح يفحص اللعبة كل ثانية وحدة، أول ما يلكى شاشة جاهزة يضربها بالواجهة مالتك
-    self.radarTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(tryInjectMenu) userInfo:nil repeats:YES];
-}
-
-- (void)tryInjectMenu {
-    UIViewController *topController = nil;
+- (void)showAuthScreen {
+    if (self.authWindow) return; // لمنع التكرار
     
-    // محاولة اصطياد الشاشة بجميع إصدارات iOS
+    // 1. إنشاء نافذة خاصة تدعم iOS 13 فما فوق (Scenes)
     if (@available(iOS 13.0, *)) {
         for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
             if (scene.activationState == UISceneActivationStateForegroundActive) {
-                for (UIWindow *window in scene.windows) {
-                    if (window.isKeyWindow) {
-                        topController = window.rootViewController;
-                        break;
-                    }
-                }
+                self.authWindow = [[UIWindow alloc] initWithWindowScene:scene];
+                break;
             }
         }
     }
     
-    if (!topController) {
-        topController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    // للإصدارات الأقدم إذا لم يتم العثور على Scene
+    if (!self.authWindow) {
+        self.authWindow = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
     }
     
-    // إذا اللعبة اشتغلت والشاشة جاهزة
-    if (topController) {
-        while (topController.presentedViewController) {
-            topController = topController.presentedViewController;
-        }
-        
-        // إذا واجهتك ما معروضة بعد
-        if (![topController isKindOfClass:[HassanyAuthVC class]]) {
-            HassanyAuthVC *authVC = [[HassanyAuthVC alloc] init];
-            authVC.modalPresentationStyle = UIModalPresentationOverFullScreen;
-            [topController presentViewController:authVC animated:YES completion:nil];
-            
-            // نوقف الرادار بعد ما نجح الحقن حتى ما يستهلك البطارية
-            [self.radarTimer invalidate];
-            self.radarTimer = nil;
-        }
-    }
+    // 2. السر هنا: إعطاء النافذة أعلى مستوى ممكن (أعلى من اللعبة نفسها)
+    self.authWindow.windowLevel = UIWindowLevelAlert + 1;
+    self.authWindow.rootViewController = [[HassanyAuthVC alloc] init];
+    self.authWindow.backgroundColor = [UIColor clearColor];
+    
+    // 3. فرض إظهار النافذة
+    [self.authWindow makeKeyAndVisible];
 }
 @end
 
-// هذا الكود يتنفذ أول ما ينزرع الدايليب (قبل لا تفتح اللعبة أصلاً)
+// ==========================================
+// تفعيل الحقن بمجرد بدء اللعبة
+// ==========================================
 %ctor {
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [[HassanyVIPInjector sharedInstance] startRadar];
-    });
+    // ننتظر التطبيق حتى يصبح Active ثم نفرض نافذتنا
+    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidBecomeActiveNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification * _Nonnull note) {
+        static dispatch_once_t once;
+        dispatch_once(&once, ^{
+            // تأخير بسيط للتأكد من تخطي شاشات اللعبة الأولية
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [[HassanyVIPInjector sharedInstance] showAuthScreen];
+            });
+        });
+    }];
 }
