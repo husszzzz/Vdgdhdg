@@ -2,7 +2,7 @@
 #import <QuartzCore/QuartzCore.h>
 
 // ==========================================
-// 1. إعدادات قاعدة البيانات (Supabase) والروابط
+// 1. إعدادات قاعدة البيانات والروابط
 // ==========================================
 #define SUPABASE_URL @"https://tsajzdjcatufzpdjqofv.supabase.co"
 #define SUPABASE_ANON_KEY @"sb_publishable_gtetovKtVETv8LtRu4iWkw_dEUNvQPE"
@@ -10,7 +10,7 @@
 #define DEV_ACCOUNT @"https://t.me/OM_G9"
 
 // ==========================================
-// 2. واجهة حماية الـ VIP (النسخة الكاملة مع الأنيميشن)
+// 2. واجهة حماية الـ VIP (النسخة الكاملة)
 // ==========================================
 @interface HassanyVIPAuthView : UIView <UITextFieldDelegate>
 @property (nonatomic, strong) UIView *cardView;
@@ -30,7 +30,6 @@
     return self;
 }
 
-// إخفاء الكيبورد عند الضغط على أي مكان بالشاشة
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     [self endEditing:YES];
 }
@@ -39,14 +38,12 @@
     CGFloat w = self.frame.size.width;
     CGFloat h = self.frame.size.height;
     
-    // --- 1. التعتيم الشامل (Blur) ---
     UIBlurEffect *blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
     UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blur];
     blurView.frame = self.bounds;
     blurView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [self addSubview:blurView];
     
-    // --- 2. الخلفية المتدرجة المتحركة (Gradient Animation) ---
     self.gradientLayer = [CAGradientLayer layer];
     self.gradientLayer.frame = self.bounds;
     self.gradientLayer.colors = @[(id)[UIColor colorWithRed:0.2 green:0.0 blue:0.0 alpha:0.6].CGColor,
@@ -57,7 +54,6 @@
     [self.layer addSublayer:self.gradientLayer];
     [self animateGradient];
     
-    // --- 3. الكارد الأساسي الثابت ---
     CGFloat cardW = 320;
     if (cardW > w - 40) cardW = w - 40;
     CGFloat cardH = 470;
@@ -74,7 +70,6 @@
     self.cardView.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
     [self addSubview:self.cardView];
 
-    // --- 4. صورة اللوجو ---
     UIImageView *logo = [[UIImageView alloc] initWithFrame:CGRectMake((cardW - 90)/2, 25, 90, 90)];
     logo.layer.cornerRadius = 20;
     logo.clipsToBounds = YES;
@@ -87,7 +82,6 @@
         if (imgData) { dispatch_async(dispatch_get_main_queue(), ^{ logo.image = [UIImage imageWithData:imgData]; }); }
     });
 
-    // --- 5. النصوص والترحيب ---
     UILabel *subtitle = [[UILabel alloc] initWithFrame:CGRectMake(10, 130, cardW - 20, 20)];
     subtitle.text = @"الهـاك تابع لقناه hassanyIPA حصرا فقط";
     subtitle.textColor = [UIColor colorWithRed:1.0 green:0.3 blue:0.3 alpha:1.0];
@@ -103,7 +97,6 @@
     title.numberOfLines = 2;
     [self.cardView addSubview:title];
 
-    // --- 6. حقل إدخال الكود ---
     self.codeField = [[UITextField alloc] initWithFrame:CGRectMake(20, 215, cardW - 40, 48)];
     self.codeField.placeholder = @"@hassanyIPA-VIP-XXXXXXX";
     self.codeField.textAlignment = NSTextAlignmentCenter;
@@ -117,7 +110,6 @@
     NSString *savedCode = [[NSUserDefaults standardUserDefaults] objectForKey:@"HassanyVIPCode"];
     if (savedCode) self.codeField.text = savedCode;
 
-    // --- 7. زر الدخول ---
     UIButton *loginBtn = [UIButton buttonWithType:UIButtonTypeSystem];
     loginBtn.frame = CGRectMake(20, 278, cardW - 40, 48);
     [loginBtn setTitle:@"دخول" forState:UIControlStateNormal];
@@ -128,7 +120,6 @@
     [loginBtn addTarget:self action:@selector(checkLicense) forControlEvents:UIControlEventTouchUpInside];
     [self.cardView addSubview:loginBtn];
 
-    // --- 8. رسالة الحالة (بديل الـ Alert) ---
     self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 335, cardW - 20, 40)];
     self.statusLabel.textColor = [UIColor colorWithRed:1.0 green:0.4 blue:0.4 alpha:1.0];
     self.statusLabel.font = [UIFont boldSystemFontOfSize:13];
@@ -137,7 +128,6 @@
     self.statusLabel.text = @"";
     [self.cardView addSubview:self.statusLabel];
 
-    // --- 9. أزرار القنوات والمطور ---
     UIButton *chBtn = [UIButton buttonWithType:UIButtonTypeSystem];
     chBtn.frame = CGRectMake(20, 390, (cardW/2) - 25, 45);
     [chBtn setTitle:@"القناة" forState:UIControlStateNormal];
@@ -158,14 +148,12 @@
     [devBtn addTarget:self action:@selector(openDev) forControlEvents:UIControlEventTouchUpInside];
     [self.cardView addSubview:devBtn];
 
-    // --- 10. دائرة التحميل ---
     self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
     self.spinner.color = [UIColor redColor];
     self.spinner.center = CGPointMake(cardW/2, 355);
     self.spinner.hidesWhenStopped = YES;
     [self.cardView addSubview:self.spinner];
 
-    // --- تأثير الظهور ---
     self.alpha = 0;
     self.cardView.transform = CGAffineTransformMakeScale(0.8, 0.8);
     [UIView animateWithDuration:0.5 delay:0 usingSpringWithDamping:0.7 initialSpringVelocity:0.5 options:UIViewAnimationOptionCurveEaseOut animations:^{
@@ -173,13 +161,11 @@
         self.cardView.transform = CGAffineTransformIdentity;
     } completion:nil];
 
-    // فحص تلقائي للكود المحفوظ
     if (savedCode && savedCode.length > 5) {
         [self checkLicense];
     }
 }
 
-// دالة تحريك الخلفية (اللمسة الاحترافية)
 - (void)animateGradient {
     CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:@"colors"];
     animation.toValue = @[(id)[UIColor colorWithRed:0.05 green:0.0 blue:0.1 alpha:0.6].CGColor,
@@ -195,7 +181,7 @@
 - (void)openDev { [[UIApplication sharedApplication] openURL:[NSURL URLWithString:DEV_ACCOUNT] options:@{} completionHandler:nil]; }
 
 // ==========================================
-// 3. الفحص من السيرفر (مع تخطي الكاش الإجباري)
+// 3. الفحص والتحقق من الأجهزة
 // ==========================================
 - (void)checkLicense {
     NSString *code = [self.codeField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
@@ -208,10 +194,7 @@
     
     NSString *urlStr = [NSString stringWithFormat:@"%@/rest/v1/licenses?code_key=eq.%@&select=*", SUPABASE_URL, code];
     NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlStr]];
-    
-    // 🚀 السر هنا: تخطي الكاش لضمان جلب الوقت الحقيقي دائماً
     req.cachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
-    
     [req setValue:SUPABASE_ANON_KEY forHTTPHeaderField:@"apikey"];
     [req setValue:[NSString stringWithFormat:@"Bearer %@", SUPABASE_ANON_KEY] forHTTPHeaderField:@"Authorization"];
     [req setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
@@ -222,9 +205,7 @@
             [self.spinner stopAnimating];
             self.userInteractionEnabled = YES;
             
-            if (error || !data) {
-                self.statusLabel.text = @"حدث خطأ في الاتصال بالسيرفر!"; return;
-            }
+            if (error || !data) { self.statusLabel.text = @"حدث خطأ في الاتصال بالسيرفر!"; return; }
             
             NSArray *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
             if (json.count == 0) {
@@ -242,11 +223,11 @@
             }
             
             NSString *expiryStr = license[@"expiry_date"];
+            NSDate *expiryDate = nil;
             if (expiryStr && ![expiryStr isKindOfClass:[NSNull class]]) {
                 NSISO8601DateFormatter *formatter = [[NSISO8601DateFormatter alloc] init];
                 formatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
-                NSDate *expiryDate = [formatter dateFromString:expiryStr];
-                
+                expiryDate = [formatter dateFromString:expiryStr];
                 if (!expiryDate) {
                     formatter.formatOptions = NSISO8601DateFormatWithInternetDateTime;
                     expiryDate = [formatter dateFromString:expiryStr];
@@ -257,19 +238,79 @@
                     [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"HassanyVIPCode"];
                     return;
                 }
-                
-                // الكود شغال، نفتح اللعبة
+            } else {
+                 self.statusLabel.text = @"هذا الكود تالف."; return;
+            }
+
+            // --- نظام فحص الأجهزة (الجديد) ---
+            NSString *devicesStr = license[@"registered_devices"];
+            if (!devicesStr || [devicesStr isKindOfClass:[NSNull class]]) devicesStr = @"";
+            NSString *myUUID = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
+            
+            if ([devicesStr containsString:myUUID]) {
+                // الجهاز مسجل مسبقاً، تفضل بالدخول
                 [self showSuccessAndStartGame:expiryDate];
             } else {
-                 self.statusLabel.text = @"هذا الكود تالف (لا يحتوي على تاريخ).";
-                 [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"HassanyVIPCode"];
+                // جهاز جديد، نتحقق من السعة
+                NSArray *rawDevices = [devicesStr componentsSeparatedByString:@","];
+                NSMutableArray *validDevices = [NSMutableArray array];
+                for (NSString *d in rawDevices) { if (d.length > 0) [validDevices addObject:d]; }
+                
+                int maxUsers = 1; // الافتراضي
+                if (license[@"max_users"] && ![license[@"max_users"] isKindOfClass:[NSNull class]]) {
+                    maxUsers = [license[@"max_users"] intValue];
+                }
+                BOOL isGlobal = NO;
+                if (license[@"is_global"] && ![license[@"is_global"] isKindOfClass:[NSNull class]]) {
+                    isGlobal = [license[@"is_global"] boolValue];
+                }
+                
+                if (!isGlobal) maxUsers = 1; // الكود الخاص يتحمل شخص واحد فقط
+                
+                if (validDevices.count >= maxUsers) {
+                    self.statusLabel.text = @"عذراً، تم الوصول للحد الأقصى للأجهزة لهذا الكود!";
+                    [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"HassanyVIPCode"];
+                } else {
+                    // اكو مجال، نسجل الجهاز بالداتا بيس
+                    [validDevices addObject:myUUID];
+                    NSString *newDevicesStr = [validDevices componentsJoinedByString:@","];
+                    [self registerDeviceToServer:license[@"id"] newDevicesStr:newDevicesStr expiryDate:expiryDate];
+                }
+            }
+        });
+    }] resume];
+}
+
+// دالة تسجيل بصمة الجهاز بالسيرفر
+- (void)registerDeviceToServer:(NSNumber *)licenseId newDevicesStr:(NSString *)newStr expiryDate:(NSDate *)expiryDate {
+    [self.spinner startAnimating];
+    self.userInteractionEnabled = NO;
+    
+    NSString *updateUrl = [NSString stringWithFormat:@"%@/rest/v1/licenses?id=eq.%@", SUPABASE_URL, licenseId];
+    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:updateUrl]];
+    req.HTTPMethod = @"PATCH";
+    [req setValue:SUPABASE_ANON_KEY forHTTPHeaderField:@"apikey"];
+    [req setValue:[NSString stringWithFormat:@"Bearer %@", SUPABASE_ANON_KEY] forHTTPHeaderField:@"Authorization"];
+    [req setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    
+    NSDictionary *body = @{@"registered_devices": newStr};
+    req.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
+    
+    [[[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.spinner stopAnimating];
+            self.userInteractionEnabled = YES;
+            if (error) {
+                self.statusLabel.text = @"فشل تسجيل الجهاز، يرجى المحاولة مرة أخرى.";
+            } else {
+                [self showSuccessAndStartGame:expiryDate];
             }
         });
     }] resume];
 }
 
 // ==========================================
-// 4. واجهة النجاح ورسالة الشكر المنبثقة (Toast)
+// 4. واجهة النجاح ورسالة الشكر
 // ==========================================
 - (void)showSuccessAndStartGame:(NSDate *)expiryDate {
     [[NSUserDefaults standardUserDefaults] setObject:self.codeField.text forKey:@"HassanyVIPCode"];
@@ -312,7 +353,6 @@
             check.alpha = 1; msg.alpha = 1; timeLbl.alpha = 1;
         }];
         
-        // إغلاق الواجهة بعد 3 ثواني وعرض رسالة الشكر (Toast)
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [UIView animateWithDuration:0.5 animations:^{
                 self.alpha = 0;
@@ -321,7 +361,6 @@
                 UIView *parentView = self.superview;
                 [self removeFromSuperview];
                 
-                // --- إضافة رسالة الـ Toast ---
                 if (parentView) {
                     UILabel *toastLabel = [[UILabel alloc] init];
                     toastLabel.text = @"شكراً لكم.. المطور الوحيد حسين الحسني";
