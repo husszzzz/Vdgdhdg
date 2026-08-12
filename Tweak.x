@@ -9,25 +9,7 @@
 #define SUPABASE_ANON_KEY @"sb_publishable_gtetovKtVETv8LtRu4iWkw_dEUNvQPE"
 
 // ==========================================
-// 1. الدالة السحرية لجلب النافذة الفعالة (من كودك)
-// ==========================================
-UIWindow *GetUniversalWindow() {
-    if (@available(iOS 13.0, *)) {
-        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
-            if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
-                UIWindowScene *windowScene = (UIWindowScene *)scene;
-                for (UIWindow *w in windowScene.windows) {
-                    if (w.isKeyWindow) return w;
-                }
-                return windowScene.windows.firstObject;
-            }
-        }
-    }
-    return [[UIApplication sharedApplication].windows firstObject];
-}
-
-// ==========================================
-// 2. كلاس منظومة الـ VIP كـ (UIView) إجباري
+// واجهة تسجيل الدخول وحماية الـ VIP (UIView)
 // ==========================================
 @interface HassanyVIPAuthView : UIView <UITextFieldDelegate>
 @property (nonatomic, strong) UIView *animatedBgView;
@@ -46,7 +28,6 @@ UIWindow *GetUniversalWindow() {
     return self;
 }
 
-// لإخفاء الكيبورد عند الضغط على الشاشة
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     [self endEditing:YES];
 }
@@ -54,7 +35,7 @@ UIWindow *GetUniversalWindow() {
 - (void)setupVIPUI {
     self.backgroundColor = [UIColor clearColor];
     
-    // 1. الخلفية المتحركة (Animated Pulsing Background)
+    // 1. الخلفية المتحركة
     self.animatedBgView = [[UIView alloc] initWithFrame:self.bounds];
     self.animatedBgView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.animatedBgView.backgroundColor = [UIColor colorWithRed:0.2 green:0.0 blue:0.0 alpha:1.0];
@@ -70,7 +51,7 @@ UIWindow *GetUniversalWindow() {
     blurView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [self addSubview:blurView];
 
-    // 2. الحاوية الرئيسية المتجاوبة (AutoLayout)
+    // 2. الحاوية الرئيسية
     self.mainStack = [[UIStackView alloc] init];
     self.mainStack.axis = UILayoutConstraintAxisVertical;
     self.mainStack.alignment = UIStackViewAlignmentCenter;
@@ -316,15 +297,11 @@ UIWindow *GetUniversalWindow() {
     }] resume];
 }
 
-// ==========================================
-// رسالة الخطأ (Alert)
-// ==========================================
 - (void)showError:(NSString *)msg {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"خطأ ❌" message:msg preferredStyle:UIAlertControllerStyleAlert];
     [alert addAction:[UIAlertAction actionWithTitle:@"حسناً" style:UIAlertActionStyleCancel handler:nil]];
     
-    UIWindow *window = GetUniversalWindow();
-    UIViewController *topController = window.rootViewController;
+    UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
     while (topController.presentedViewController) {
         topController = topController.presentedViewController;
     }
@@ -332,7 +309,7 @@ UIWindow *GetUniversalWindow() {
 }
 
 // ==========================================
-// النجاح والعداد وإغلاق الواجهة بالكامل (UIView Remove)
+// النجاح والعداد وإغلاق الواجهة
 // ==========================================
 - (void)showSuccessAndStartGame:(NSDictionary *)license {
     [[NSUserDefaults standardUserDefaults] setObject:self.codeField.text forKey:@"HassanyVIPCode"];
@@ -387,7 +364,6 @@ UIWindow *GetUniversalWindow() {
         successView.alpha = 1;
     }];
     
-    // بعد 3 ثواني نحذف الواجهة نهائياً حتى ترجع اللعبة طبيعي
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [UIView animateWithDuration:0.5 animations:^{
             self.alpha = 0;
@@ -401,27 +377,32 @@ UIWindow *GetUniversalWindow() {
 
 
 // ==========================================
-// 3. نظام الحقن بالاعتماد على كودك الناجح
+// 3. نظام الحقن المضمون (من كودك الناجح)
 // ==========================================
-%ctor {
-    // ننتظر التطبيق يفتح ويصير جاهز 100%
-    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidBecomeActiveNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification * _Nonnull note) {
-        
-        static dispatch_once_t onceToken;
-        dispatch_once(&onceToken, ^{
-            // نتأخر ثانية وحدة حتى نعبر شاشة التحميل
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                
-                UIWindow *window = GetUniversalWindow();
-                if (window) {
-                    // هنا السر: نضيف واجهتنا كـ Subview مباشر مو كـ ViewController
-                    HassanyVIPAuthView *authView = [[HassanyVIPAuthView alloc] initWithFrame:window.bounds];
-                    authView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-                    [window addSubview:authView];
-                }
-                
-            });
+%hook UIViewController
+
+- (void)viewDidAppear:(BOOL)animated {
+    %orig; 
+    
+    // منع تكرار الواجهة أكثر من مرة
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            
+            UIView *targetView = self.view.window;
+            if (!targetView) {
+                targetView = self.view; 
+            }
+            
+            if (targetView && ![targetView viewWithTag:999999]) {
+                HassanyVIPAuthView *authView = [[HassanyVIPAuthView alloc] initWithFrame:targetView.bounds];
+                authView.tag = 999999; // حتى لا تنضاف مرتين
+                authView.layer.zPosition = 9999; // البقاء في أعلى طبقة
+                authView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+                [targetView addSubview:authView];
+            }
         });
-        
-    }];
+    });
 }
+
+%end
