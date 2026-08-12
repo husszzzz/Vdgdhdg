@@ -1,5 +1,9 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
+@interface HassanySecretKey2026 : NSObject
+@end
+@implementation HassanySecretKey2026
+@end
 
 // ==========================================
 // 1. إعدادات قاعدة البيانات والروابط
