@@ -146,7 +146,7 @@
     [self.cardView addSubview:devBtn];
 
     // 9. سبينر التحميل
-    self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+    self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
     self.spinner.color = [UIColor redColor];
     self.spinner.center = CGPointMake(cardW/2, 345);
     self.spinner.hidesWhenStopped = YES;
