@@ -2,27 +2,27 @@
 #import <Foundation/Foundation.h>
 
 // ==========================================
-// 1. فخ الـ Info.plist: الكلاس الوهمي اللي يطلبه النظام
+// 1. فخ الـ Info.plist: الكلاس الوهمي للنظام
 // ==========================================
 @interface MCApplication : UIApplication
 @end
-
 @implementation MCApplication
 @end
 
 // ==========================================
-// 2. فخ الذاكرة: كلب الحراسة اللي يمنع التزوير والحذف
+// 2. فخ المفتاح السري: يمنع التزوير
 // ==========================================
 __attribute__((constructor)) static void HassanyWatchdog_Init() {
-    // ننتظر 5 ثواني حتى تفتح اللعبة وتشتغل اللوحة
+    
+    // ننتظر 5 ثواني
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         
-        // البحث عن الكلاس الأساسي مال واجهتك بالذاكرة
-        Class mySecretClass = NSClassFromString(@"HassanyWelcomeView");
+        // الكلب هسه يدور بداخل ذاكرة اللعبة على (المفتاح السري) اللي زرعناه بالدايليب الأساسي
+        Class secretKey = NSClassFromString(@"HassanySecretKey2026");
         
-        if (!mySecretClass) {
-            // إذا الكلاس ما موجود بالذاكرة، معناها الدايليب انحذف أو تبدل بواحد مزيف!
-            // اضرب اللعبة بكراش فوري
+        if (!secretKey) {
+            // إذا المكرك حذف الدايليب الأساسي، أو خلى دايليب مزيف.. 
+            // الكلب ما راح يلكى المفتاح السري (HassanySecretKey2026) وراح يضرب اللعبة فوراً!
             abort();
         }
     });
