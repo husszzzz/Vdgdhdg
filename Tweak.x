@@ -1,433 +1,112 @@
 #import <UIKit/UIKit.h>
-#import <QuartzCore/QuartzCore.h>
-@interface HassanySecretKey2026 : NSObject
-@end
-@implementation HassanySecretKey2026
-@end
+#import <objc/runtime.h>
 
-// ==========================================
-// 1. إعدادات قاعدة البيانات والروابط
-// ==========================================
-#define SUPABASE_URL @"https://tsajzdjcatufzpdjqofv.supabase.co"
-#define SUPABASE_ANON_KEY @"sb_publishable_gtetovKtVETv8LtRu4iWkw_dEUNvQPE"
-#define TELEGRAM_LINK @"https://t.me/hassanyIPA"
-#define DEV_ACCOUNT @"https://t.me/OM_G9"
-
-// ==========================================
-// 2. واجهة حماية الـ VIP (النسخة الكاملة)
-// ==========================================
-@interface HassanyVIPAuthView : UIView <UITextFieldDelegate>
-@property (nonatomic, strong) UIView *cardView;
-@property (nonatomic, strong) CAGradientLayer *gradientLayer;
-@property (nonatomic, strong) UITextField *codeField;
-@property (nonatomic, strong) UIActivityIndicatorView *spinner;
-@property (nonatomic, strong) UILabel *statusLabel;
-@end
-
-@implementation HassanyVIPAuthView
-
-- (instancetype)initWithFrame:(CGRect)frame {
-    self = [super initWithFrame:frame];
-    if (self) {
-        [self setupVIPUI];
+// ==========================================================
+// فاحص الكلمات الذكي (Smart Keyword Checker)
+// ==========================================================
+static BOOL containsWelcomeKeywords(NSString *text) {
+    if (!text || text.length == 0) return NO;
+    
+    // قائمة الكلمات الدلالية لرسائل الترحيب والحقوق
+    NSArray *keywords = @[
+        @"مرحبا", @"مرحباً", @"أهلا", @"أهلاً", @"ترحيب", @"متجر", @"تطوير", @"حقوق",
+        @"اشتراك", @"قناة", @"تليجرام", @"تلي", @"سورس", @"حياك", @"حياكم", @"كود",
+        @"welcome", @"hello", @"enjoy", @"developed", @"developer", @"channel", 
+        @"telegram", @"store", @"t.me", @"crack", @"hacked", @"by:", @"vip"
+    ];
+    
+    NSString *lower = [text lowercaseString];
+    for (NSString *kw in keywords) {
+        if ([lower containsString:[kw lowercaseString]]) {
+            return YES;
+        }
     }
-    return self;
+    return NO;
 }
 
-- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    [self endEditing:YES];
-}
-
-- (void)setupVIPUI {
-    CGFloat w = self.frame.size.width;
-    CGFloat h = self.frame.size.height;
+// دالة تفحص كل النصوص داخل أي واجهة أو نافذة مخصصة
+static BOOL viewTreeHasWelcomeText(UIView *view) {
+    if (!view) return NO;
     
-    UIBlurEffect *blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
-    UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blur];
-    blurView.frame = self.bounds;
-    blurView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    [self addSubview:blurView];
-    
-    self.gradientLayer = [CAGradientLayer layer];
-    self.gradientLayer.frame = self.bounds;
-    self.gradientLayer.colors = @[(id)[UIColor colorWithRed:0.2 green:0.0 blue:0.0 alpha:0.6].CGColor,
-                                  (id)[UIColor colorWithRed:0.05 green:0.0 blue:0.1 alpha:0.6].CGColor,
-                                  (id)[UIColor colorWithRed:0.1 green:0.0 blue:0.0 alpha:0.6].CGColor];
-    self.gradientLayer.startPoint = CGPointMake(0, 0);
-    self.gradientLayer.endPoint = CGPointMake(1, 1);
-    [self.layer addSublayer:self.gradientLayer];
-    [self animateGradient];
-    
-    CGFloat cardW = 320;
-    if (cardW > w - 40) cardW = w - 40;
-    CGFloat cardH = 470;
-    
-    self.cardView = [[UIView alloc] initWithFrame:CGRectMake((w - cardW)/2, (h - cardH)/2, cardW, cardH)];
-    self.cardView.backgroundColor = [UIColor colorWithWhite:0.08 alpha:0.95];
-    self.cardView.layer.cornerRadius = 24;
-    self.cardView.layer.borderWidth = 1.5;
-    self.cardView.layer.borderColor = [UIColor colorWithRed:0.8 green:0.0 blue:0.0 alpha:0.8].CGColor;
-    self.cardView.layer.shadowColor = [UIColor redColor].CGColor;
-    self.cardView.layer.shadowOpacity = 0.5;
-    self.cardView.layer.shadowRadius = 20;
-    self.cardView.layer.shadowOffset = CGSizeMake(0, 8);
-    self.cardView.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
-    [self addSubview:self.cardView];
-
-    UIImageView *logo = [[UIImageView alloc] initWithFrame:CGRectMake((cardW - 90)/2, 25, 90, 90)];
-    logo.layer.cornerRadius = 20;
-    logo.clipsToBounds = YES;
-    logo.layer.borderWidth = 2;
-    logo.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.2].CGColor;
-    [self.cardView addSubview:logo];
-
-    dispatch_async(dispatch_get_global_queue(0,0), ^{
-        NSData *imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"https://a.top4top.io/p_38750r3gh0.jpeg"]];
-        if (imgData) { dispatch_async(dispatch_get_main_queue(), ^{ logo.image = [UIImage imageWithData:imgData]; }); }
-    });
-
-    UILabel *subtitle = [[UILabel alloc] initWithFrame:CGRectMake(10, 130, cardW - 20, 20)];
-    subtitle.text = @"الهـاك تابع لقناه hassanyIPA حصرا فقط";
-    subtitle.textColor = [UIColor colorWithRed:1.0 green:0.3 blue:0.3 alpha:1.0];
-    subtitle.font = [UIFont boldSystemFontOfSize:12];
-    subtitle.textAlignment = NSTextAlignmentCenter;
-    [self.cardView addSubview:subtitle];
-
-    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(15, 155, cardW - 30, 45)];
-    title.text = @"مرحبا بك يرجى ادخال كود التفعيل الخاص بك\nيمكنك الشراء حصرا من hassanyIPA";
-    title.textColor = [UIColor whiteColor];
-    title.font = [UIFont boldSystemFontOfSize:14];
-    title.textAlignment = NSTextAlignmentCenter;
-    title.numberOfLines = 2;
-    [self.cardView addSubview:title];
-
-    self.codeField = [[UITextField alloc] initWithFrame:CGRectMake(20, 215, cardW - 40, 48)];
-    self.codeField.placeholder = @"@hassanyIPA-VIP-XXXXXXX";
-    self.codeField.textAlignment = NSTextAlignmentCenter;
-    self.codeField.textColor = [UIColor whiteColor];
-    self.codeField.backgroundColor = [UIColor colorWithWhite:0.15 alpha:1.0];
-    self.codeField.layer.cornerRadius = 12;
-    self.codeField.layer.borderWidth = 1;
-    self.codeField.layer.borderColor = [UIColor darkGrayColor].CGColor;
-    [self.cardView addSubview:self.codeField];
-
-    NSString *savedCode = [[NSUserDefaults standardUserDefaults] objectForKey:@"HassanyVIPCode"];
-    if (savedCode) self.codeField.text = savedCode;
-
-    UIButton *loginBtn = [UIButton buttonWithType:UIButtonTypeSystem];
-    loginBtn.frame = CGRectMake(20, 278, cardW - 40, 48);
-    [loginBtn setTitle:@"دخول" forState:UIControlStateNormal];
-    [loginBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    loginBtn.backgroundColor = [UIColor colorWithRed:0.8 green:0.0 blue:0.0 alpha:1.0];
-    loginBtn.layer.cornerRadius = 12;
-    loginBtn.titleLabel.font = [UIFont boldSystemFontOfSize:18];
-    [loginBtn addTarget:self action:@selector(checkLicense) forControlEvents:UIControlEventTouchUpInside];
-    [self.cardView addSubview:loginBtn];
-
-    self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 335, cardW - 20, 40)];
-    self.statusLabel.textColor = [UIColor colorWithRed:1.0 green:0.4 blue:0.4 alpha:1.0];
-    self.statusLabel.font = [UIFont boldSystemFontOfSize:13];
-    self.statusLabel.textAlignment = NSTextAlignmentCenter;
-    self.statusLabel.numberOfLines = 2;
-    self.statusLabel.text = @"";
-    [self.cardView addSubview:self.statusLabel];
-
-    UIButton *chBtn = [UIButton buttonWithType:UIButtonTypeSystem];
-    chBtn.frame = CGRectMake(20, 390, (cardW/2) - 25, 45);
-    [chBtn setTitle:@"القناة" forState:UIControlStateNormal];
-    chBtn.backgroundColor = [UIColor colorWithWhite:0.2 alpha:1.0];
-    [chBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    chBtn.layer.cornerRadius = 10;
-    chBtn.titleLabel.font = [UIFont boldSystemFontOfSize:15];
-    [chBtn addTarget:self action:@selector(openChannel) forControlEvents:UIControlEventTouchUpInside];
-    [self.cardView addSubview:chBtn];
-
-    UIButton *devBtn = [UIButton buttonWithType:UIButtonTypeSystem];
-    devBtn.frame = CGRectMake((cardW/2) + 5, 390, (cardW/2) - 25, 45);
-    [devBtn setTitle:@"المطور" forState:UIControlStateNormal];
-    devBtn.backgroundColor = [UIColor colorWithWhite:0.2 alpha:1.0];
-    [devBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    devBtn.layer.cornerRadius = 10;
-    devBtn.titleLabel.font = [UIFont boldSystemFontOfSize:15];
-    [devBtn addTarget:self action:@selector(openDev) forControlEvents:UIControlEventTouchUpInside];
-    [self.cardView addSubview:devBtn];
-
-    self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
-    self.spinner.color = [UIColor redColor];
-    self.spinner.center = CGPointMake(cardW/2, 355);
-    self.spinner.hidesWhenStopped = YES;
-    [self.cardView addSubview:self.spinner];
-
-    self.alpha = 0;
-    self.cardView.transform = CGAffineTransformMakeScale(0.8, 0.8);
-    [UIView animateWithDuration:0.5 delay:0 usingSpringWithDamping:0.7 initialSpringVelocity:0.5 options:UIViewAnimationOptionCurveEaseOut animations:^{
-        self.alpha = 1;
-        self.cardView.transform = CGAffineTransformIdentity;
-    } completion:nil];
-
-    if (savedCode && savedCode.length > 5) {
-        [self checkLicense];
+    if ([view isKindOfClass:[UILabel class]]) {
+        if (containsWelcomeKeywords([(UILabel *)view text])) return YES;
+    } else if ([view isKindOfClass:[UIButton class]]) {
+        if (containsWelcomeKeywords([(UIButton *)view currentTitle])) return YES;
+    } else if ([view isKindOfClass:[UITextView class]]) {
+        if (containsWelcomeKeywords([(UITextView *)view text])) return YES;
+    } else if ([view isKindOfClass:[UITextField class]]) {
+        if (containsWelcomeKeywords([(UITextField *)view placeholder])) return YES;
     }
+    
+    for (UIView *sub in view.subviews) {
+        if (viewTreeHasWelcomeText(sub)) return YES;
+    }
+    return NO;
 }
 
-- (void)animateGradient {
-    CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:@"colors"];
-    animation.toValue = @[(id)[UIColor colorWithRed:0.05 green:0.0 blue:0.1 alpha:0.6].CGColor,
-                          (id)[UIColor colorWithRed:0.2 green:0.0 blue:0.0 alpha:0.6].CGColor,
-                          (id)[UIColor colorWithRed:0.1 green:0.0 blue:0.0 alpha:0.6].CGColor];
-    animation.duration = 4.0;
-    animation.autoreverses = YES;
-    animation.repeatCount = HUGE_VALF;
-    [self.gradientLayer addAnimation:animation forKey:@"colorChange"];
-}
-
-- (void)openChannel { [[UIApplication sharedApplication] openURL:[NSURL URLWithString:TELEGRAM_LINK] options:@{} completionHandler:nil]; }
-- (void)openDev { [[UIApplication sharedApplication] openURL:[NSURL URLWithString:DEV_ACCOUNT] options:@{} completionHandler:nil]; }
-
-// ==========================================
-// 3. الفحص والتحقق من الأجهزة
-// ==========================================
-- (void)checkLicense {
-    NSString *code = [self.codeField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-    if (code.length == 0) return;
-    
-    [self endEditing:YES];
-    self.statusLabel.text = @"";
-    [self.spinner startAnimating];
-    self.userInteractionEnabled = NO;
-    
-    NSString *urlStr = [NSString stringWithFormat:@"%@/rest/v1/licenses?code_key=eq.%@&select=*", SUPABASE_URL, code];
-    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlStr]];
-    req.cachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
-    [req setValue:SUPABASE_ANON_KEY forHTTPHeaderField:@"apikey"];
-    [req setValue:[NSString stringWithFormat:@"Bearer %@", SUPABASE_ANON_KEY] forHTTPHeaderField:@"Authorization"];
-    [req setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    
-    NSURLSession *session = [NSURLSession sharedSession];
-    [[session dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.spinner stopAnimating];
-            self.userInteractionEnabled = YES;
-            
-            if (error || !data) { self.statusLabel.text = @"حدث خطأ في الاتصال بالسيرفر!"; return; }
-            
-            NSArray *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-            if (json.count == 0) {
-                self.statusLabel.text = @"الكود غير صحيح! تأكد من كتابته بشكل صحيح.";
-                [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"HassanyVIPCode"];
-                return;
-            }
-            
-            NSDictionary *license = json.firstObject;
-            
-            if ([license[@"status"] isEqualToString:@"disabled"]) {
-                self.statusLabel.text = @"هذا الكود تم إيقافه من قبل الإدارة!";
-                [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"HassanyVIPCode"];
-                return;
-            }
-            
-            NSString *expiryStr = license[@"expiry_date"];
-            NSDate *expiryDate = nil;
-            if (expiryStr && ![expiryStr isKindOfClass:[NSNull class]]) {
-                NSISO8601DateFormatter *formatter = [[NSISO8601DateFormatter alloc] init];
-                formatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
-                expiryDate = [formatter dateFromString:expiryStr];
-                if (!expiryDate) {
-                    formatter.formatOptions = NSISO8601DateFormatWithInternetDateTime;
-                    expiryDate = [formatter dateFromString:expiryStr];
-                }
-                
-                if (expiryDate && [expiryDate timeIntervalSinceNow] <= 0) {
-                    self.statusLabel.text = @"انتهت مدة صلاحية هذا الكود!";
-                    [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"HassanyVIPCode"];
-                    return;
-                }
-            } else {
-                 self.statusLabel.text = @"هذا الكود تالف."; return;
-            }
-
-            // --- نظام فحص الأجهزة (الجديد) ---
-            NSString *devicesStr = license[@"registered_devices"];
-            if (!devicesStr || [devicesStr isKindOfClass:[NSNull class]]) devicesStr = @"";
-            NSString *myUUID = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
-            
-            if ([devicesStr containsString:myUUID]) {
-                // الجهاز مسجل مسبقاً، تفضل بالدخول
-                [self showSuccessAndStartGame:expiryDate];
-            } else {
-                // جهاز جديد، نتحقق من السعة
-                NSArray *rawDevices = [devicesStr componentsSeparatedByString:@","];
-                NSMutableArray *validDevices = [NSMutableArray array];
-                for (NSString *d in rawDevices) { if (d.length > 0) [validDevices addObject:d]; }
-                
-                int maxUsers = 1; // الافتراضي
-                if (license[@"max_users"] && ![license[@"max_users"] isKindOfClass:[NSNull class]]) {
-                    maxUsers = [license[@"max_users"] intValue];
-                }
-                BOOL isGlobal = NO;
-                if (license[@"is_global"] && ![license[@"is_global"] isKindOfClass:[NSNull class]]) {
-                    isGlobal = [license[@"is_global"] boolValue];
-                }
-                
-                if (!isGlobal) maxUsers = 1; // الكود الخاص يتحمل شخص واحد فقط
-                
-                if (validDevices.count >= maxUsers) {
-                    self.statusLabel.text = @"عذراً، تم الوصول للحد الأقصى للأجهزة لهذا الكود!";
-                    [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"HassanyVIPCode"];
-                } else {
-                    // اكو مجال، نسجل الجهاز بالداتا بيس
-                    [validDevices addObject:myUUID];
-                    NSString *newDevicesStr = [validDevices componentsJoinedByString:@","];
-                    [self registerDeviceToServer:license[@"id"] newDevicesStr:newDevicesStr expiryDate:expiryDate];
-                }
-            }
-        });
-    }] resume];
-}
-
-// دالة تسجيل بصمة الجهاز بالسيرفر
-- (void)registerDeviceToServer:(NSNumber *)licenseId newDevicesStr:(NSString *)newStr expiryDate:(NSDate *)expiryDate {
-    [self.spinner startAnimating];
-    self.userInteractionEnabled = NO;
-    
-    NSString *updateUrl = [NSString stringWithFormat:@"%@/rest/v1/licenses?id=eq.%@", SUPABASE_URL, licenseId];
-    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:updateUrl]];
-    req.HTTPMethod = @"PATCH";
-    [req setValue:SUPABASE_ANON_KEY forHTTPHeaderField:@"apikey"];
-    [req setValue:[NSString stringWithFormat:@"Bearer %@", SUPABASE_ANON_KEY] forHTTPHeaderField:@"Authorization"];
-    [req setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    
-    NSDictionary *body = @{@"registered_devices": newStr};
-    req.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
-    
-    [[[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.spinner stopAnimating];
-            self.userInteractionEnabled = YES;
-            if (error) {
-                self.statusLabel.text = @"فشل تسجيل الجهاز، يرجى المحاولة مرة أخرى.";
-            } else {
-                [self showSuccessAndStartGame:expiryDate];
-            }
-        });
-    }] resume];
-}
-
-// ==========================================
-// 4. واجهة النجاح ورسالة الشكر
-// ==========================================
-- (void)showSuccessAndStartGame:(NSDate *)expiryDate {
-    [[NSUserDefaults standardUserDefaults] setObject:self.codeField.text forKey:@"HassanyVIPCode"];
-    [[NSUserDefaults standardUserDefaults] synchronize];
-    
-    [UIView animateWithDuration:0.3 animations:^{
-        for (UIView *v in self.cardView.subviews) { v.alpha = 0; }
-    } completion:^(BOOL finished) {
-        
-        UIImageView *check = [[UIImageView alloc] initWithFrame:CGRectMake((self.cardView.frame.size.width - 80)/2, 80, 80, 80)];
-        check.image = [UIImage systemImageNamed:@"checkmark.seal.fill"];
-        if(!check.image) { check.backgroundColor = [UIColor greenColor]; check.layer.cornerRadius = 40; }
-        check.tintColor = [UIColor greenColor];
-        check.alpha = 0;
-        [self.cardView addSubview:check];
-        
-        UILabel *msg = [[UILabel alloc] initWithFrame:CGRectMake(10, 180, self.cardView.frame.size.width - 20, 60)];
-        msg.text = @"عاشت ايدك تم بنجاح\nتگدر تستخدم الهاك هسه";
-        msg.textColor = [UIColor whiteColor];
-        msg.font = [UIFont boldSystemFontOfSize:22];
-        msg.textAlignment = NSTextAlignmentCenter;
-        msg.numberOfLines = 2;
-        msg.alpha = 0;
-        [self.cardView addSubview:msg];
-        
-        UILabel *timeLbl = [[UILabel alloc] initWithFrame:CGRectMake(10, 260, self.cardView.frame.size.width - 20, 40)];
-        timeLbl.textColor = [UIColor greenColor];
-        timeLbl.font = [UIFont boldSystemFontOfSize:16];
-        timeLbl.textAlignment = NSTextAlignmentCenter;
-        timeLbl.alpha = 0;
-        [self.cardView addSubview:timeLbl];
-        
-        NSTimeInterval diff = [expiryDate timeIntervalSinceNow];
-        int days = diff / (24*3600);
-        int hours = (int)diff % (24*3600) / 3600;
-        int mins = (int)diff % 3600 / 60;
-        timeLbl.text = [NSString stringWithFormat:@"المتبقي: %d يوم و %d ساعة و %d دقيقة", days, hours, mins];
-        
-        [UIView animateWithDuration:0.4 animations:^{
-            check.alpha = 1; msg.alpha = 1; timeLbl.alpha = 1;
-        }];
-        
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [UIView animateWithDuration:0.5 animations:^{
-                self.alpha = 0;
-                self.transform = CGAffineTransformMakeScale(1.1, 1.1);
-            } completion:^(BOOL finished) {
-                UIView *parentView = self.superview;
-                [self removeFromSuperview];
-                
-                if (parentView) {
-                    UILabel *toastLabel = [[UILabel alloc] init];
-                    toastLabel.text = @"شكراً لكم.. المطور الوحيد حسين الحسني";
-                    toastLabel.font = [UIFont systemFontOfSize:14 weight:UIFontWeightMedium];
-                    toastLabel.textColor = [UIColor whiteColor];
-                    toastLabel.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.9];
-                    toastLabel.textAlignment = NSTextAlignmentCenter;
-                    toastLabel.layer.cornerRadius = 20;
-                    toastLabel.layer.masksToBounds = YES;
-                    
-                    CGSize textSize = [toastLabel.text sizeWithAttributes:@{NSFontAttributeName:toastLabel.font}];
-                    toastLabel.frame = CGRectMake((parentView.bounds.size.width - textSize.width - 40)/2,
-                                                  parentView.bounds.size.height - 120,
-                                                  textSize.width + 40, 40);
-                    
-                    toastLabel.alpha = 0;
-                    toastLabel.transform = CGAffineTransformMakeTranslation(0, 20);
-                    [parentView addSubview:toastLabel];
-                    
-                    [UIView animateWithDuration:0.4 delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
-                        toastLabel.alpha = 1;
-                        toastLabel.transform = CGAffineTransformIdentity;
-                    } completion:^(BOOL finished) {
-                        [UIView animateWithDuration:0.4 delay:2.5 options:UIViewAnimationOptionCurveEaseIn animations:^{
-                            toastLabel.alpha = 0;
-                            toastLabel.transform = CGAffineTransformMakeTranslation(0, 20);
-                        } completion:^(BOOL finished) {
-                            [toastLabel removeFromSuperview];
-                        }];
-                    }];
-                }
-            }];
-        });
-    }];
-}
-@end
-
-// ==========================================
-// 5. الاستدعاء المضمون (الحقن)
-// ==========================================
+// ==========================================================
+// 1. هوك اعتراض رسائل النظام الحديثة (UIAlertController)
+// ==========================================================
 %hook UIViewController
 
-- (void)viewDidAppear:(BOOL)animated {
-    %orig; 
+- (void)presentViewController:(UIViewController *)viewControllerToPresent animated:(BOOL)flag completion:(void (^)(void))completion {
     
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            
-            UIView *targetView = self.view.window;
-            if (!targetView) {
-                targetView = self.view; 
-            }
-            
-            if (targetView && ![targetView viewWithTag:999999]) {
-                HassanyVIPAuthView *authAlert = [[HassanyVIPAuthView alloc] initWithFrame:targetView.bounds];
-                authAlert.tag = 999999;
-                authAlert.layer.zPosition = 9999; 
-                authAlert.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-                [targetView addSubview:authAlert];
-            }
-        });
-    });
+    // فحص رسائل الـ Alert العادية
+    if ([viewControllerToPresent isKindOfClass:[UIAlertController class]]) {
+        UIAlertController *alert = (UIAlertController *)viewControllerToPresent;
+        NSString *title = alert.title ? alert.title : @"";
+        NSString *message = alert.message ? alert.message : @"";
+        
+        if (containsWelcomeKeywords(title) || containsWelcomeKeywords(message)) {
+            // اعتراض فوري: إخفاء التنبيه بدون عرضه نهائياً
+            if (completion) completion();
+            return;
+        }
+    }
+    
+    // فحص الواجهات المخصصة (مثل الشاشات الفخمة والبلور)
+    if (viewTreeHasWelcomeText(viewControllerToPresent.view)) {
+        if (completion) completion();
+        return; // منع ظهور الشاشة المخصصة
+    }
+    
+    %orig(viewControllerToPresent, flag, completion);
+}
+
+%end
+
+// ==========================================================
+// 2. هوك اعتراض الرسائل الكلاسيكية القديمة (UIAlertView)
+// ==========================================================
+%hook UIAlertView
+
+- (void)show {
+    NSString *title = [self title] ?: @"";
+    NSString *message = [self message] ?: @"";
+    
+    if (containsWelcomeKeywords(title) || containsWelcomeKeywords(message)) {
+        // حظر الظهور
+        return;
+    }
+    %orig;
+}
+
+%end
+
+// ==========================================================
+// 3. هوك النوافذ الطافية المباشرة (Direct Window Overlays)
+// ==========================================================
+%hook UIWindow
+
+- (void)addSubview:(UIView *)view {
+    // إذا حاول أي ملف حقن نافذة عائمة ترحيبية مباشرة على شاشة التطبيق
+    if (viewTreeHasWelcomeText(view)) {
+        view.hidden = YES;
+        view.alpha = 0.0;
+        [view removeFromSuperview];
+        return;
+    }
+    %orig(view);
 }
 
 %end
