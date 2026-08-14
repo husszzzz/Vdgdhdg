@@ -1,20 +1,12 @@
-ARCHS = arm64
-TARGET = iphone:clang:latest:13.0
+TARGET := iphone:clang:latest:14.0
+ARCHS = arm64 arm64e
 
 include $(THEOS)/makefiles/common.mk
 
-# ==========================================
-# 1. الدايليب الأول (لوحة التحكم الأساسية مالتك)
-# ==========================================
-TWEAK_NAME = Vdgdhdg
-Vdgdhdg_FILES = Tweak.x
-Vdgdhdg_CFLAGS = -fobjc-arc
+TWEAK_NAME = AntiWelcomePopup
 
-# ==========================================
-# 2. الدايليب الثاني (كلب الحراسة المخفي)
-# ==========================================
-TWEAK_NAME += Guard
-Guard_FILES = Guard.x
-Guard_CFLAGS = -fobjc-arc
+AntiWelcomePopup_FILES = Tweak.x
+AntiWelcomePopup_CFLAGS = -fobjc-arc -Wno-deprecated-declarations
+AntiWelcomePopup_FRAMEWORKS = UIKit Foundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
