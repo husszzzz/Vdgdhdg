@@ -1,112 +1,46 @@
 #import <UIKit/UIKit.h>
-#import <objc/runtime.h>
 
 // ==========================================================
-// فاحص الكلمات الذكي (Smart Keyword Checker)
+// 1. هوك لتدمير كلاس رسالة كيرا من الداخل
 // ==========================================================
-static BOOL containsWelcomeKeywords(NSString *text) {
-    if (!text || text.length == 0) return NO;
+%hook iKiraPlusVC
+
+- (void)viewDidLoad {
+    %orig; // خلي النظام يكمل شغله الطبيعي
     
-    // قائمة الكلمات الدلالية لرسائل الترحيب والحقوق
-    NSArray *keywords = @[
-        @"مرحبا", @"مرحباً", @"أهلا", @"أهلاً", @"ترحيب", @"متجر", @"تطوير", @"حقوق",
-        @"اشتراك", @"قناة", @"تليجرام", @"تلي", @"سورس", @"حياك", @"حياكم", @"كود",
-        @"welcome", @"hello", @"enjoy", @"developed", @"developer", @"channel", 
-        @"telegram", @"store", @"t.me", @"crack", @"hacked", @"by:", @"vip"
-    ];
+    // إخفاء الشاشة وتصفير شفافيتها
+    self.view.hidden = YES;
+    self.view.alpha = 0.0;
     
-    NSString *lower = [text lowercaseString];
-    for (NSString *kw in keywords) {
-        if ([lower containsString:[kw lowercaseString]]) {
-            return YES;
-        }
-    }
-    return NO;
+    // تعطيل اللمس حتى لا تعلق الشاشة عندك وتصير شفافة وتمنعك من اللعب
+    self.view.userInteractionEnabled = NO;
+    
+    // إغلاق الواجهة تلقائياً في الخلفية (Dismiss)
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self dismissViewControllerAnimated:NO completion:nil];
+    });
 }
 
-// دالة تفحص كل النصوص داخل أي واجهة أو نافذة مخصصة
-static BOOL viewTreeHasWelcomeText(UIView *view) {
-    if (!view) return NO;
-    
-    if ([view isKindOfClass:[UILabel class]]) {
-        if (containsWelcomeKeywords([(UILabel *)view text])) return YES;
-    } else if ([view isKindOfClass:[UIButton class]]) {
-        if (containsWelcomeKeywords([(UIButton *)view currentTitle])) return YES;
-    } else if ([view isKindOfClass:[UITextView class]]) {
-        if (containsWelcomeKeywords([(UITextView *)view text])) return YES;
-    } else if ([view isKindOfClass:[UITextField class]]) {
-        if (containsWelcomeKeywords([(UITextField *)view placeholder])) return YES;
-    }
-    
-    for (UIView *sub in view.subviews) {
-        if (viewTreeHasWelcomeText(sub)) return YES;
-    }
-    return NO;
-}
+%end
 
 // ==========================================================
-// 1. هوك اعتراض رسائل النظام الحديثة (UIAlertController)
+// 2. حماية إضافية: منع اللعبة من عرض هذا الكلاس نهائياً
 // ==========================================================
 %hook UIViewController
 
 - (void)presentViewController:(UIViewController *)viewControllerToPresent animated:(BOOL)flag completion:(void (^)(void))completion {
     
-    // فحص رسائل الـ Alert العادية
-    if ([viewControllerToPresent isKindOfClass:[UIAlertController class]]) {
-        UIAlertController *alert = (UIAlertController *)viewControllerToPresent;
-        NSString *title = alert.title ? alert.title : @"";
-        NSString *message = alert.message ? alert.message : @"";
-        
-        if (containsWelcomeKeywords(title) || containsWelcomeKeywords(message)) {
-            // اعتراض فوري: إخفاء التنبيه بدون عرضه نهائياً
-            if (completion) completion();
-            return;
-        }
-    }
+    // نجيب اسم الشاشة اللي تحاول تظهر هسه
+    NSString *className = NSStringFromClass([viewControllerToPresent class]);
     
-    // فحص الواجهات المخصصة (مثل الشاشات الفخمة والبلور)
-    if (viewTreeHasWelcomeText(viewControllerToPresent.view)) {
+    // إذا كان اسمها iKiraPlusVC، نرفض العرض فوراً
+    if ([className containsString:@"iKiraPlusVC"]) {
         if (completion) completion();
-        return; // منع ظهور الشاشة المخصصة
+        return; // حظر الظهور
     }
     
-    %orig(viewControllerToPresent, flag, completion);
-}
-
-%end
-
-// ==========================================================
-// 2. هوك اعتراض الرسائل الكلاسيكية القديمة (UIAlertView)
-// ==========================================================
-%hook UIAlertView
-
-- (void)show {
-    NSString *title = [self title] ?: @"";
-    NSString *message = [self message] ?: @"";
-    
-    if (containsWelcomeKeywords(title) || containsWelcomeKeywords(message)) {
-        // حظر الظهور
-        return;
-    }
+    // إذا شاشة طبيعية باللعبة، نعرضها طبيعي
     %orig;
-}
-
-%end
-
-// ==========================================================
-// 3. هوك النوافذ الطافية المباشرة (Direct Window Overlays)
-// ==========================================================
-%hook UIWindow
-
-- (void)addSubview:(UIView *)view {
-    // إذا حاول أي ملف حقن نافذة عائمة ترحيبية مباشرة على شاشة التطبيق
-    if (viewTreeHasWelcomeText(view)) {
-        view.hidden = YES;
-        view.alpha = 0.0;
-        [view removeFromSuperview];
-        return;
-    }
-    %orig(view);
 }
 
 %end
