@@ -164,7 +164,8 @@ static void extractAndPlant(NSArray *targets, UIScrollView *scroll, CGFloat *cur
     }
 }
 
-static CGFloat y0 = 10, y1 = 10, y2 = 10;
+// تغيير الأسماء لمنع التضارب مع مكتبات الرياضيات في أبل
+static CGFloat tabY0 = 10, tabY1 = 10, tabY2 = 10;
 
 // الرادار الذكي اللي يشتغل بالخلفية
 static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
@@ -176,9 +177,9 @@ static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
     NSArray *targets1 = @[@"طريقة العرض", @"إزاحة Y", @"إزاحة X", @"مقياس X", @"مقياس Y", @"سمك الخط", @"شفافية الخط", @"نقطة النهاية", @"حلقة الجيب", @"توقع الضربه القويه"];
     NSArray *targets2 = @[@"زر الاختصار", @"إيقاف عند اللمس", @"نمط دوران", @"وضع التصويب", @"أسلوب اللعب", @"مستوى اللعب", @"وضع الكسر", @"قوة التصويب", @"سرعة تصويب"];
     
-    if (tab0) extractAndPlant(targets0, tab0, &y0, mainMenu);
-    if (tab1) extractAndPlant(targets1, tab1, &y1, mainMenu);
-    if (tab2) extractAndPlant(targets2, tab2, &y2, mainMenu);
+    if (tab0) extractAndPlant(targets0, tab0, &tabY0, mainMenu);
+    if (tab1) extractAndPlant(targets1, tab1, &tabY1, mainMenu);
+    if (tab2) extractAndPlant(targets2, tab2, &tabY2, mainMenu);
     
     for (UIView *sub in mainMenu.subviews) {
         if (sub.tag != 7777) { sub.alpha = 0.01; sub.userInteractionEnabled = NO; }
@@ -256,7 +257,7 @@ static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
         for (int i = 0; i < 4; i++) {
             UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(20, 80, 580, 300)];
             scrollView.tag = 8000 + i; 
-            scrollView.backgroundColor = [UIColor clearColor]; // شفاف بالكامل للجمالية
+            scrollView.backgroundColor = [UIColor clearColor]; 
             scrollView.layer.borderWidth = 0; 
             scrollView.showsVerticalScrollIndicator = NO; 
             scrollView.alwaysBounceVertical = YES; 
