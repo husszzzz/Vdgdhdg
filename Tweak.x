@@ -1,14 +1,24 @@
 #import <UIKit/UIKit.h>
 
 // ==========================================
-// 1. كلاس الزر الذكي (نظام علامة الصح ✅)
+// 1. تعريف الكلاسات (Interfaces)
 // ==========================================
+@interface GBModMenu : UIView
+- (void)tabChanged:(UISegmentedControl *)sender;
+- (void)openHasanyChannel:(id)sender;
+- (void)openHasanyDev:(id)sender;
+@end
+
+// كلاس زر الصح الذكي
 @interface CBToggle : UIButton
 @property (nonatomic, strong) UISwitch *targetSwitch;
 @property (nonatomic, strong) NSString *baseTitle;
 - (void)updateLook;
 @end
 
+// ==========================================
+// 2. برمجة الكلاسات (Implementations)
+// ==========================================
 @implementation CBToggle
 - (void)btnTapped {
     [self.targetSwitch setOn:!self.targetSwitch.isOn animated:YES];
@@ -31,18 +41,15 @@
 }
 @end
 
-@interface GBModMenu : UIView
-- (void)tabChanged:(UISegmentedControl *)sender;
-- (void)openHasanyChannel:(id)sender;
-- (void)openHasanyDev:(id)sender;
-@end
-
 // ==========================================
-// 2. نظام تغيير النصوص
+// 3. تغيير النصوص (Hooks)
 // ==========================================
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (!text || ![text isKindOfClass:[NSString class]]) { %orig; return; }
+    if (!text || ![text isKindOfClass:[NSString class]]) {
+        %orig;
+        return;
+    }
     
     NSString *newText = text;
     if ([text containsString:@"i3rby Store"]) { newText = @"hassanyIPA"; }
@@ -57,11 +64,10 @@
 %end
 
 // ==========================================
-// 3. أدوات الخطف والتصميم النظيف
+// 4. دوال الهندسة العكسية والخطف (C-Functions)
 // ==========================================
 static UILabel* findLabel(UIView *root, NSString *searchText) {
     if (root.tag == 7777 || root.tag == 9999) return nil; 
-    
     if ([root isKindOfClass:[UILabel class]]) {
         if ([[(UILabel *)root text] containsString:searchText]) return (UILabel *)root;
     }
@@ -86,7 +92,7 @@ static UIView* findTrueRow(UILabel *label) {
     return label.superview; 
 }
 
-// دالة تحويل السويتش القديم إلى زر الصح الفخم
+// دالة تحويل السويتش القديم إلى زر الصح ✅
 static void setupCheckmarkUI(UIView *row) {
     row.backgroundColor = [UIColor clearColor];
     row.layer.borderWidth = 0; 
@@ -120,7 +126,6 @@ static void setupCheckmarkUI(UIView *row) {
         
         [row addSubview:btn];
     } else {
-        // ترتيب السلايدرات (الشرائط) بدون إطار
         for (UIView *v in row.subviews) {
             if ([v isKindOfClass:[UILabel class]]) {
                 ((UILabel *)v).textColor = [UIColor whiteColor];
@@ -139,11 +144,29 @@ static void setupCheckmarkUI(UIView *row) {
     }
 }
 
-// ==========================================
-// 4. الرادار الذكي (يشتغل بالخلفية لجمع الأزرار)
-// ==========================================
-static CGFloat y0 = 10, y1 = 10, y2 = 10; // حفظ مواقع الأزرار
+// دالة سحب وزرع الأزرار
+static void extractAndPlant(NSArray *targets, UIScrollView *scroll, CGFloat *currentY, UIView *mainMenu) {
+    for (NSString *targetName in targets) {
+        UILabel *lbl = findLabel(mainMenu, targetName);
+        if (lbl && lbl.superview.tag != 9999) {
+            UIView *row = findTrueRow(lbl);
+            if (row && row.tag != 9999) {
+                row.tag = 9999;
+                [row removeFromSuperview];
+                row.translatesAutoresizingMaskIntoConstraints = YES;
+                row.frame = CGRectMake(10, *currentY, 560, 45); 
+                setupCheckmarkUI(row);
+                [scroll addSubview:row];
+                *currentY += 55;
+                scroll.contentSize = CGSizeMake(580, *currentY + 20); 
+            }
+        }
+    }
+}
 
+static CGFloat y0 = 10, y1 = 10, y2 = 10;
+
+// الرادار الذكي اللي يشتغل بالخلفية
 static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
     UIScrollView *tab0 = (UIScrollView *)[hassanyUI viewWithTag:8000];
     UIScrollView *tab1 = (UIScrollView *)[hassanyUI viewWithTag:8001];
@@ -153,45 +176,21 @@ static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
     NSArray *targets1 = @[@"طريقة العرض", @"إزاحة Y", @"إزاحة X", @"مقياس X", @"مقياس Y", @"سمك الخط", @"شفافية الخط", @"نقطة النهاية", @"حلقة الجيب", @"توقع الضربه القويه"];
     NSArray *targets2 = @[@"زر الاختصار", @"إيقاف عند اللمس", @"نمط دوران", @"وضع التصويب", @"أسلوب اللعب", @"مستوى اللعب", @"وضع الكسر", @"قوة التصويب", @"سرعة تصويب"];
     
-    void (^sweepAndMove)(NSArray *, UIScrollView *, CGFloat *) = ^(NSArray *targets, UIScrollView *scroll, CGFloat *currentY) {
-        for (NSString *targetName in targets) {
-            UILabel *lbl = findLabel(mainMenu, targetName);
-            if (lbl && lbl.superview.tag != 9999) {
-                UIView *row = findTrueRow(lbl);
-                if (row && row.tag != 9999) {
-                    row.tag = 9999; // نعلمه حتى ما نسحبه مرتين
-                    [row removeFromSuperview];
-                    
-                    row.translatesAutoresizingMaskIntoConstraints = YES;
-                    row.frame = CGRectMake(10, *currentY, 560, 45); 
-                    
-                    setupCheckmarkUI(row);
-                    
-                    [scroll addSubview:row];
-                    *currentY += 55; // مسافة الترتيب
-                    scroll.contentSize = CGSizeMake(580, *currentY + 20); // تفعيل النزول
-                }
-            }
-        }
-    };
+    if (tab0) extractAndPlant(targets0, tab0, &y0, mainMenu);
+    if (tab1) extractAndPlant(targets1, tab1, &y1, mainMenu);
+    if (tab2) extractAndPlant(targets2, tab2, &y2, mainMenu);
     
-    sweepAndMove(targets0, tab0, &y0);
-    sweepAndMove(targets1, tab1, &y1);
-    sweepAndMove(targets2, tab2, &y2);
-    
-    // إخفاء المنيو القديم تماماً
     for (UIView *sub in mainMenu.subviews) {
         if (sub.tag != 7777) { sub.alpha = 0.01; sub.userInteractionEnabled = NO; }
     }
     
-    // إعادة الفحص كل ثانية
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         continuousRadar(mainMenu, hassanyUI);
     });
 }
 
 // ==========================================
-// 5. بناء واجهة الحسني النظيفة
+// 5. بناء واجهة المنيو الرئيسية
 // ==========================================
 %hook GBModMenu
 
@@ -228,7 +227,6 @@ static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
     
     UIView *hassanyUI = [mainMenu viewWithTag:7777];
     if (!hassanyUI) {
-        // الإطار الأساسي الأنيق
         hassanyUI = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 620, 400)];
         hassanyUI.tag = 7777;
         hassanyUI.backgroundColor = [UIColor colorWithRed:0.07 green:0.07 blue:0.07 alpha:0.95]; 
@@ -259,9 +257,9 @@ static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
             UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(20, 80, 580, 300)];
             scrollView.tag = 8000 + i; 
             scrollView.backgroundColor = [UIColor clearColor]; // شفاف بالكامل للجمالية
-            scrollView.layer.borderWidth = 0; // مسحنا الحدود المزعجة
-            scrollView.showsVerticalScrollIndicator = NO; // إخفاء خط النزول لجمالية أكثر
-            scrollView.alwaysBounceVertical = YES; // تفعيل مرونة النزول
+            scrollView.layer.borderWidth = 0; 
+            scrollView.showsVerticalScrollIndicator = NO; 
+            scrollView.alwaysBounceVertical = YES; 
             scrollView.hidden = (i != 0);
             [hassanyUI addSubview:scrollView];
         }
