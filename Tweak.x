@@ -9,7 +9,7 @@
 - (void)openHasanyDev:(id)sender;
 @end
 
-// كلاس زر الصح الذكي
+// كلاس الزر الذكي (نظام علامة الصح ✅)
 @interface CBToggle : UIButton
 @property (nonatomic, strong) UISwitch *targetSwitch;
 @property (nonatomic, strong) NSString *baseTitle;
@@ -17,10 +17,11 @@
 @end
 
 // ==========================================
-// 2. برمجة الكلاسات (Implementations)
+// 2. برمجة زر الصح (Implementation)
 // ==========================================
 @implementation CBToggle
 - (void)btnTapped {
+    // تفعيل السويتش الأصلي المخفي
     [self.targetSwitch setOn:!self.targetSwitch.isOn animated:YES];
     [self.targetSwitch sendActionsForControlEvents:UIControlEventValueChanged];
     [self updateLook];
@@ -29,34 +30,31 @@
     if (self.targetSwitch.isOn) {
         [self setTitle:[NSString stringWithFormat:@"✅  %@", self.baseTitle] forState:UIControlStateNormal];
         [self setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-        self.backgroundColor = [UIColor colorWithRed:0.4 green:0.0 blue:0.0 alpha:0.9];
+        self.backgroundColor = [UIColor colorWithRed:0.6 green:0.0 blue:0.0 alpha:0.9];
         self.layer.borderWidth = 1.0;
         self.layer.borderColor = [UIColor redColor].CGColor;
     } else {
         [self setTitle:[NSString stringWithFormat:@"⬜️  %@", self.baseTitle] forState:UIControlStateNormal];
         [self setTitleColor:[UIColor lightGrayColor] forState:UIControlStateNormal];
-        self.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.5];
+        self.backgroundColor = [UIColor colorWithWhite:0.2 alpha:0.7];
         self.layer.borderWidth = 0.0;
     }
 }
 @end
 
 // ==========================================
-// 3. تغيير النصوص (Hooks)
+// 3. تغيير الأسماء الأصلية (Hooks)
 // ==========================================
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (!text || ![text isKindOfClass:[NSString class]]) {
-        %orig;
-        return;
-    }
+    if (!text || ![text isKindOfClass:[NSString class]]) { %orig; return; }
     
     NSString *newText = text;
     if ([text containsString:@"i3rby Store"]) { newText = @"hassanyIPA"; }
     else if ([text containsString:@"ايفون بالعربي"]) { newText = @""; }
-    else if ([text containsString:@"السحب الابتدائي"]) { newText = @"توقع الضربه القويه (ينصح به)"; }
+    else if ([text containsString:@"السحب الابتدائي"]) { newText = @"توقع الضربه القويه"; }
     else if ([text containsString:@"البشرنة"]) { newText = @"أسلوب اللعب"; }
-    else if ([text isEqualToString:@"الرسوم"]) { newText = @"طريقة العرض"; }
+    else if ([text containsString:@"الرسوم"]) { newText = @"طريقة العرض"; }
     else if ([text containsString:@"الكره الخاطئة"]) { newText = @"تنبيه الكره الخاطئة"; }
     
     %orig(newText);
@@ -64,7 +62,7 @@
 %end
 
 // ==========================================
-// 4. دوال الهندسة العكسية والخطف (C-Functions)
+// 4. محرك البناء النظيف (بدون سحب العشوائيات)
 // ==========================================
 static UILabel* findLabel(UIView *root, NSString *searchText) {
     if (root.tag == 7777 || root.tag == 9999) return nil; 
@@ -92,99 +90,112 @@ static UIView* findTrueRow(UILabel *label) {
     return label.superview; 
 }
 
-// دالة تحويل السويتش القديم إلى زر الصح ✅
-static void setupCheckmarkUI(UIView *row) {
-    row.backgroundColor = [UIColor clearColor];
-    row.layer.borderWidth = 0; 
-    
-    UISwitch *sw = nil;
-    UILabel *titleLbl = nil;
-    
-    for (UIView *v in row.subviews) {
-        if ([v isKindOfClass:[UISwitch class]]) sw = (UISwitch *)v;
-        if ([v isKindOfClass:[UILabel class]]) titleLbl = (UILabel *)v;
+// الدالة الأسطورية: تصنع واجهة نظيفة وتربطها بالمخفي
+static void buildCleanRow(NSString *targetName, UIScrollView *scroll, CGFloat *yOffset, UIView *mainMenu) {
+    UILabel *origLabel = findLabel(mainMenu, targetName);
+    if (!origLabel) return;
+
+    UIView *origRow = findTrueRow(origLabel);
+    if (!origRow || origRow.tag == 9999) return;
+    origRow.tag = 9999; // نعلمه حتى ما نرجعله
+
+    // 1. نخفي السطر القديم بمكانه (ما نسحبه أبداً حتى ما يخرب)
+    origRow.hidden = YES;
+
+    // 2. نبني سطرنا النظيف
+    UIView *cleanRow = [[UIView alloc] initWithFrame:CGRectMake(10, *yOffset, 560, 50)];
+    cleanRow.backgroundColor = [UIColor clearColor];
+
+    // 3. نبحث شنو بداخل السطر القديم (سويتش لو سلايدر لو خيارات؟)
+    UISwitch *origSw = nil;
+    UISlider *origSl = nil;
+    UISegmentedControl *origSeg = nil;
+
+    for (UIView *v in origRow.subviews) {
+        if ([v isKindOfClass:[UISwitch class]]) origSw = (UISwitch *)v;
+        else if ([v isKindOfClass:[UISlider class]]) origSl = (UISlider *)v;
+        else if ([v isKindOfClass:[UISegmentedControl class]]) origSeg = (UISegmentedControl *)v;
     }
-    
-    if (sw && titleLbl) {
-        sw.hidden = YES;
-        titleLbl.hidden = YES;
-        
+
+    // 4. نصمم على كيفنا
+    if (origSw) {
+        // زر الصح ✅
         CBToggle *btn = [CBToggle buttonWithType:UIButtonTypeCustom];
-        btn.frame = CGRectMake(0, 0, 560, 45); 
+        btn.frame = CGRectMake(0, 0, 560, 45);
         btn.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
         btn.titleEdgeInsets = UIEdgeInsetsMake(0, 15, 0, 0);
         btn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
         btn.layer.cornerRadius = 10;
-        
-        NSString *cleanTitle = [titleLbl.text stringByReplacingOccurrencesOfString:@"ⓘ" withString:@""];
-        cleanTitle = [cleanTitle stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-        
-        btn.baseTitle = cleanTitle;
-        btn.targetSwitch = sw;
+        btn.baseTitle = targetName;
+        btn.targetSwitch = origSw;
         [btn addTarget:btn action:@selector(btnTapped) forControlEvents:UIControlEventTouchUpInside];
         [btn updateLook];
-        
-        [row addSubview:btn];
-    } else {
-        for (UIView *v in row.subviews) {
-            if ([v isKindOfClass:[UILabel class]]) {
-                ((UILabel *)v).textColor = [UIColor whiteColor];
-                ((UILabel *)v).font = [UIFont boldSystemFontOfSize:15];
-            } else if ([v isKindOfClass:[UISlider class]]) {
-                ((UISlider *)v).minimumTrackTintColor = [UIColor redColor];
-                ((UISlider *)v).thumbTintColor = [UIColor redColor];
-            } else if ([v isKindOfClass:[UISegmentedControl class]]) {
-                if (@available(iOS 13.0, *)) {
-                    ((UISegmentedControl *)v).selectedSegmentTintColor = [UIColor redColor];
-                } else {
-                    ((UISegmentedControl *)v).tintColor = [UIColor redColor];
-                }
-            }
+        [cleanRow addSubview:btn];
+        *yOffset += 55;
+    } 
+    else if (origSl) {
+        // شريط السحب (Slider)
+        UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 200, 50)];
+        lbl.text = targetName;
+        lbl.textColor = [UIColor whiteColor];
+        lbl.font = [UIFont boldSystemFontOfSize:16];
+        [cleanRow addSubview:lbl];
+
+        [origSl removeFromSuperview];
+        origSl.translatesAutoresizingMaskIntoConstraints = YES;
+        origSl.frame = CGRectMake(210, 10, 330, 30);
+        origSl.minimumTrackTintColor = [UIColor redColor];
+        origSl.thumbTintColor = [UIColor redColor];
+        [cleanRow addSubview:origSl];
+        *yOffset += 55;
+    } 
+    else if (origSeg) {
+        // الخيارات المتعددة (Segment)
+        UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 160, 50)];
+        lbl.text = targetName;
+        lbl.textColor = [UIColor whiteColor];
+        lbl.font = [UIFont boldSystemFontOfSize:16];
+        [cleanRow addSubview:lbl];
+
+        [origSeg removeFromSuperview];
+        origSeg.translatesAutoresizingMaskIntoConstraints = YES;
+        origSeg.frame = CGRectMake(170, 10, 370, 35);
+        if (@available(iOS 13.0, *)) {
+            origSeg.selectedSegmentTintColor = [UIColor redColor];
+        } else {
+            origSeg.tintColor = [UIColor redColor];
         }
+        [origSeg setTitleTextAttributes:@{NSForegroundColorAttributeName: [UIColor whiteColor]} forState:UIControlStateNormal];
+        [cleanRow addSubview:origSeg];
+        *yOffset += 60;
     }
+
+    [scroll addSubview:cleanRow];
+    scroll.contentSize = CGSizeMake(580, *yOffset + 20); // تفعيل النزول
 }
 
-// دالة سحب وزرع الأزرار
-static void extractAndPlant(NSArray *targets, UIScrollView *scroll, CGFloat *currentY, UIView *mainMenu) {
-    for (NSString *targetName in targets) {
-        UILabel *lbl = findLabel(mainMenu, targetName);
-        if (lbl && lbl.superview.tag != 9999) {
-            UIView *row = findTrueRow(lbl);
-            if (row && row.tag != 9999) {
-                row.tag = 9999;
-                [row removeFromSuperview];
-                row.translatesAutoresizingMaskIntoConstraints = YES;
-                row.frame = CGRectMake(10, *currentY, 560, 45); 
-                setupCheckmarkUI(row);
-                [scroll addSubview:row];
-                *currentY += 55;
-                scroll.contentSize = CGSizeMake(580, *currentY + 20); 
-            }
-        }
-    }
-}
-
-// تغيير الأسماء لمنع التضارب مع مكتبات الرياضيات في أبل
 static CGFloat tabY0 = 10, tabY1 = 10, tabY2 = 10;
 
-// الرادار الذكي اللي يشتغل بالخلفية
 static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
     UIScrollView *tab0 = (UIScrollView *)[hassanyUI viewWithTag:8000];
     UIScrollView *tab1 = (UIScrollView *)[hassanyUI viewWithTag:8001];
     UIScrollView *tab2 = (UIScrollView *)[hassanyUI viewWithTag:8002];
     
+    // الأسماء بالضبط مثل ما طلبتها
     NSArray *targets0 = @[@"خطوط التوقع", @"توقع الخصم", @"حدود الطاولة", @"تنبيه الكره الخاطئة", @"حماية البث"];
     NSArray *targets1 = @[@"طريقة العرض", @"إزاحة Y", @"إزاحة X", @"مقياس X", @"مقياس Y", @"سمك الخط", @"شفافية الخط", @"نقطة النهاية", @"حلقة الجيب", @"توقع الضربه القويه"];
     NSArray *targets2 = @[@"زر الاختصار", @"إيقاف عند اللمس", @"نمط دوران", @"وضع التصويب", @"أسلوب اللعب", @"مستوى اللعب", @"وضع الكسر", @"قوة التصويب", @"سرعة تصويب"];
     
-    if (tab0) extractAndPlant(targets0, tab0, &tabY0, mainMenu);
-    if (tab1) extractAndPlant(targets1, tab1, &tabY1, mainMenu);
-    if (tab2) extractAndPlant(targets2, tab2, &tabY2, mainMenu);
+    for (NSString *name in targets0) buildCleanRow(name, tab0, &tabY0, mainMenu);
+    for (NSString *name in targets1) buildCleanRow(name, tab1, &tabY1, mainMenu);
+    for (NSString *name in targets2) buildCleanRow(name, tab2, &tabY2, mainMenu);
     
+    // إخفاء المنيو القديم بالكامل حتى ما يخرب المنظر
     for (UIView *sub in mainMenu.subviews) {
         if (sub.tag != 7777) { sub.alpha = 0.01; sub.userInteractionEnabled = NO; }
     }
     
+    // البحث مستمر كل ثانية حتى يصيد الأزرار المتأخرة
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         continuousRadar(mainMenu, hassanyUI);
     });
@@ -241,26 +252,25 @@ static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
         [mainMenu addSubview:hassanyUI];
         
         UISegmentedControl *tabs = [[UISegmentedControl alloc] initWithItems:@[@"التوقع", @"طريقة العرض", @"اللعب التلقائي", @"الإعدادات"]];
-        tabs.frame = CGRectMake(20, 20, 580, 40);
+        tabs.frame = CGRectMake(20, 15, 580, 45);
         tabs.selectedSegmentIndex = 0; 
         [tabs addTarget:self action:@selector(tabChanged:) forControlEvents:UIControlEventValueChanged];
         
         if (@available(iOS 13.0, *)) {
-            tabs.selectedSegmentTintColor = [UIColor colorWithRed:0.7 green:0.0 blue:0.0 alpha:1.0];
+            tabs.selectedSegmentTintColor = [UIColor colorWithRed:0.8 green:0.0 blue:0.0 alpha:1.0];
         } else {
-            tabs.tintColor = [UIColor colorWithRed:0.7 green:0.0 blue:0.0 alpha:1.0];
+            tabs.tintColor = [UIColor colorWithRed:0.8 green:0.0 blue:0.0 alpha:1.0];
         }
-        [tabs setTitleTextAttributes:@{NSForegroundColorAttributeName: [UIColor whiteColor], NSFontAttributeName: [UIFont boldSystemFontOfSize:14]} forState:UIControlStateNormal];
+        [tabs setTitleTextAttributes:@{NSForegroundColorAttributeName: [UIColor whiteColor], NSFontAttributeName: [UIFont boldSystemFontOfSize:15]} forState:UIControlStateNormal];
         [hassanyUI addSubview:tabs];
         
-        // بناء السكرولات النظيفة (بدون حدود وهوسة)
+        // بناء السكرولات النظيفة (بدون حدود مخربطة)
         for (int i = 0; i < 4; i++) {
-            UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(20, 80, 580, 300)];
+            UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(20, 75, 580, 310)];
             scrollView.tag = 8000 + i; 
             scrollView.backgroundColor = [UIColor clearColor]; 
-            scrollView.layer.borderWidth = 0; 
             scrollView.showsVerticalScrollIndicator = NO; 
-            scrollView.alwaysBounceVertical = YES; 
+            scrollView.alwaysBounceVertical = YES; // تفعيل النزول والصعود
             scrollView.hidden = (i != 0);
             [hassanyUI addSubview:scrollView];
         }
@@ -310,7 +320,6 @@ static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
         
         tab3.contentSize = CGSizeMake(580, 300);
         
-        // تشغيل الرادار الذكي
         continuousRadar(mainMenu, hassanyUI);
     }
     
