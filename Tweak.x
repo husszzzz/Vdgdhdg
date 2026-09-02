@@ -7,11 +7,15 @@
 @end
 
 // ==========================================
-// 1. نظام تغيير النصوص والأسماء
+// 1. نظام تغيير النصوص (تم إصلاح خطأ %orig بالكامل)
 // ==========================================
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (!text || ![text isKindOfClass:[NSString class]]) { %orig(text); return; }
+    // إذا النص فارغ أو مو سترينج، مشي الكود الأصلي بدون أقواس (لحل الخطأ)
+    if (!text || ![text isKindOfClass:[NSString class]]) {
+        %orig; 
+        return;
+    }
     
     NSString *newText = text;
     if ([text containsString:@"i3rby Store"]) { newText = @"hassanyIPA"; }
@@ -26,16 +30,15 @@
 %end
 
 // ==========================================
-// 2. محرك الخطف الراداري (مضاد للأخطاء)
+// 2. محرك الخطف الراداري المُدرع
 // ==========================================
 static UIView* extractRow(UIView *root, NSString *searchText) {
-    if (root.tag == 7777) return nil; // أهم سطر: لا تبحث داخل تصميم الحسني!
+    if (root.tag == 7777) return nil; // حماية: لا تبحث داخل تصميم الحسني!
     
     if ([root isKindOfClass:[UILabel class]]) {
         if ([[(UILabel *)root text] containsString:searchText]) {
             UIView *parent = root.superview;
-            // نتأكد أننا سحبنا سطر الزر فقط مو المنيو كله (الارتفاع بين 20 و 150)
-            if (parent && parent.bounds.size.height > 20 && parent.bounds.size.height < 150 && parent != root) {
+            if (parent && parent.bounds.size.height >= 20 && parent.bounds.size.height <= 150 && parent != root) {
                 return parent;
             }
         }
@@ -49,11 +52,13 @@ static UIView* extractRow(UIView *root, NSString *searchText) {
 
 static void styleHijackedRow(UIView *row) {
     row.backgroundColor = [UIColor clearColor];
+    row.userInteractionEnabled = YES; // إجبار تفعيل اللمس للزر
+    
     for (UIView *sub in row.subviews) {
         if ([sub isKindOfClass:[UILabel class]]) {
             ((UILabel *)sub).textColor = [UIColor whiteColor];
             ((UILabel *)sub).font = [UIFont boldSystemFontOfSize:15];
-            ((UILabel *)sub).adjustsFontSizeToFitWidth = YES;
+            ((UILabel *)sub).adjustsFontSizeToFitWidth = YES; // تصغير الخط إذا كان طويل
         } 
         else if ([sub isKindOfClass:[UISwitch class]]) {
             ((UISwitch *)sub).onTintColor = [UIColor redColor];
@@ -76,7 +81,7 @@ static void styleHijackedRow(UIView *row) {
 }
 
 // ==========================================
-// 3. البناء والواجهة
+// 3. بناء الواجهة الرئيسية وعملية النقل
 // ==========================================
 %hook GBModMenu
 
@@ -104,18 +109,18 @@ static void styleHijackedRow(UIView *row) {
     
     UIView *mainMenu = (UIView *)self;
     
-    // تكبير المنيو
+    // الأبعاد الجديدة
     CGRect newBounds = mainMenu.bounds;
     newBounds.size.width = 620;  
     newBounds.size.height = 400; 
     mainMenu.bounds = newBounds;
     
-    mainMenu.backgroundColor = [UIColor clearColor]; // تصفير خلفية المنيو القديم
+    mainMenu.backgroundColor = [UIColor clearColor]; // إخفاء خلفية المنيو القديم
     mainMenu.layer.borderWidth = 0;
     
     UIView *hassanyUI = [mainMenu viewWithTag:7777];
     if (!hassanyUI) {
-        // بناء حاوية الحسني اللي تغطي كل شي
+        // واجهة الحسني الفخمة
         hassanyUI = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 620, 400)];
         hassanyUI.tag = 7777;
         hassanyUI.backgroundColor = [UIColor colorWithRed:0.07 green:0.07 blue:0.07 alpha:1.0]; 
@@ -141,6 +146,7 @@ static void styleHijackedRow(UIView *row) {
         [tabs setTitleTextAttributes:@{NSForegroundColorAttributeName: [UIColor whiteColor], NSFontAttributeName: [UIFont boldSystemFontOfSize:15]} forState:UIControlStateNormal];
         [hassanyUI addSubview:tabs];
         
+        // حاويات الأقسام
         for (int i = 0; i < 4; i++) {
             UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(20, 80, 580, 300)];
             scrollView.tag = 8000 + i; 
@@ -154,13 +160,13 @@ static void styleHijackedRow(UIView *row) {
         }
         
         // ==========================================
-        // 4. الرادار (ينتظر الأزرار تظهر حتى يسحبها)
+        // 4. الرادار المتكرر لضمان السحب 100%
         // ==========================================
         __block int attempts = 0;
         void (^__block tryExtract)(void) = ^{
-            // نبحث عن أي زر كدليل أن اللعبة اكتملت
             UIView *marker = extractRow(mainMenu, @"خطوط التوقع");
-            if (marker || attempts > 10) {
+            // إذا لگى الأزرار أو حاول أكثر من 15 مرة (يعني اللعبة اكتملت)
+            if (marker || attempts > 15) {
                 
                 UIScrollView *tab0 = (UIScrollView *)[hassanyUI viewWithTag:8000];
                 UIScrollView *tab1 = (UIScrollView *)[hassanyUI viewWithTag:8001];
@@ -177,7 +183,9 @@ static void styleHijackedRow(UIView *row) {
                         UIView *row = extractRow(mainMenu, targetName);
                         if (row) {
                             [row removeFromSuperview];
-                            row.translatesAutoresizingMaskIntoConstraints = YES; // حل مشكلة اختفاء الأزرار!
+                            
+                            // 🚀 السر هنا: نجبر النظام يتقبل القياسات وما يخفي الزر
+                            row.translatesAutoresizingMaskIntoConstraints = YES;
                             row.alpha = 1.0;
                             row.hidden = NO;
                             
@@ -196,14 +204,15 @@ static void styleHijackedRow(UIView *row) {
                 plantButtons(targetsTab1, tab1);
                 plantButtons(targetsTab2, tab2);
                 
-                // إخفاء كل السكرولات القديمة اللي بقت فارغة
+                // طمس المنيو القديم بالكامل بعد أخذ المطلوب
                 for (UIView *sub in mainMenu.subviews) {
-                    if (sub.tag != 7777 && [sub isKindOfClass:[UIScrollView class]]) {
-                        sub.hidden = YES;
+                    if (sub.tag != 7777) {
+                        sub.alpha = 0.0;
+                        sub.userInteractionEnabled = NO;
                     }
                 }
                 
-                // --- قسم الإعدادات ---
+                // --- قسم الإعدادات (الصورة والأزرار) ---
                 UIImageView *profilePic = [[UIImageView alloc] initWithFrame:CGRectMake(240, 20, 100, 100)];
                 profilePic.layer.cornerRadius = 50;
                 profilePic.layer.masksToBounds = YES;
@@ -248,12 +257,16 @@ static void styleHijackedRow(UIView *row) {
                 tab3.contentSize = CGSizeMake(580, 320);
                 
             } else {
+                // إذا الأزرار بعدهي ما مبنية، نعيد المحاولة
                 attempts++;
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), tryExtract);
             }
         };
+        // تشغيل الرادار
         tryExtract();
     }
-    [mainMenu bringSubviewToFront:hassanyUI]; // إبقاء واجهتنا في المقدمة
+    
+    // نجبر واجهة الحسني تصير بالواجهة الأمامية
+    [mainMenu bringSubviewToFront:hassanyUI];
 }
 %end
