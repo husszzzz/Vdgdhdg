@@ -6,17 +6,21 @@
 @end
 
 // ==========================================
-// 1. نظام تغيير النصوص وطمس الهوية
+// 1. نظام تغيير النصوص وطمس الهوية (تم تصحيح خطأ الكومبايلر هنا)
 // ==========================================
 %hook UILabel
 
 - (void)setText:(NSString *)text {
-    if (!text) { %orig(text); return; }
+    // حماية من الكراش: إذا كان النص فارغ أو نوعه غير مدعوم، مشي الكود الأصلي
+    if (!text || ![text isKindOfClass:[NSString class]]) {
+        %orig; 
+        return;
+    }
     
     if ([text containsString:@"i3rby Store"]) {
         %orig(@"hassanyIPA");
     } else if ([text containsString:@"ايفون بالعربي"]) {
-        %orig(@""); // مسح الكلمة نهائياً
+        %orig(@""); 
     } else if ([text containsString:@"8 ball pool mod"]) {
         %orig(@"Hassany Premium Mod");
     } else if ([text containsString:@"الاتمته"] || [text containsString:@"الأتمتة"]) {
@@ -24,9 +28,10 @@
     } else if ([text containsString:@"المجتمع"]) {
         %orig(@"لمحة عن فريق التطوير");
     } else if ([text containsString:@"PRO"] || [text containsString:@"اشتراك"]) {
-        %orig(@""); // إخفاء كلمات برو والاشتراك
+        %orig(@""); 
     } else {
-        %orig(text);
+        // استخدمنا %orig; بدون أقواس لحل مشكلة البناء (Build Error)
+        %orig;
     }
 }
 
@@ -41,7 +46,7 @@ static void applyDeepCustomDesign(UIView *view, id targetMenu) {
     if ([view isKindOfClass:[UILabel class]]) {
         UILabel *lbl = (UILabel *)view;
         lbl.textColor = [UIColor whiteColor];
-        lbl.font = [UIFont boldSystemFontOfSize:lbl.font.pointSize]; // جعل الخط عريض وأوضح
+        lbl.font = [UIFont boldSystemFontOfSize:lbl.font.pointSize];
         
         if ([lbl.text isEqualToString:@"EN"] || [lbl.text isEqualToString:@"English"]) {
             lbl.hidden = YES;
@@ -54,7 +59,7 @@ static void applyDeepCustomDesign(UIView *view, id targetMenu) {
         UIButton *btn = (UIButton *)view;
         NSString *title = [btn titleForState:UIControlStateNormal];
         
-        btn.showsTouchWhenHighlighted = YES; // تأثير وميض عند اللمس
+        btn.showsTouchWhenHighlighted = YES;
         
         // مسح الإنجليزي بالكامل
         if ([title isEqualToString:@"EN"] || [title isEqualToString:@"English"]) {
@@ -70,10 +75,9 @@ static void applyDeepCustomDesign(UIView *view, id targetMenu) {
             btn.layer.shadowRadius = 10.0;
             btn.layer.shadowOpacity = 1.0;
             
-            // محاولة تمديد الزر ليغطي مساحة الإنجليزي
             CGRect f = btn.frame;
             f.size.width = 250; 
-            f.origin.x = (btn.superview.frame.size.width - 250) / 2; // توسيط
+            f.origin.x = (btn.superview.frame.size.width - 250) / 2;
             if (f.origin.x > 0) { btn.frame = f; }
         }
         // أزرار فريق التطوير
@@ -98,14 +102,12 @@ static void applyDeepCustomDesign(UIView *view, id targetMenu) {
         }
     }
     
-    // --- سحب صورة قناتك من الرابط ووضعها بدل اللوجو ---
+    // --- سحب صورة قناتك من الرابط ---
     else if ([view isKindOfClass:[UIImageView class]]) {
         UIImageView *imgView = (UIImageView *)view;
-        // استهداف اللوجو فقط (حجمه يكون أكبر من الأيقونات الصغيرة)
         if (imgView.frame.size.width >= 35 && imgView.frame.size.height >= 35) {
             static UIImage *customLogo = nil;
             if (!customLogo) {
-                // سحب الصورة بدون تجميد اللعبة
                 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
                     NSData *imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"https://f.top4top.io/p_38977zbnk0.jpeg"]];
                     if (imgData) {
@@ -129,7 +131,7 @@ static void applyDeepCustomDesign(UIView *view, id targetMenu) {
         }
     }
     
-    // --- تعديل أزرار التشغيل (السويتشات) ---
+    // --- تعديل أزرار التشغيل ---
     else if ([view isKindOfClass:[UISwitch class]]) {
         ((UISwitch *)view).onTintColor = [UIColor redColor];
         ((UISwitch *)view).thumbTintColor = [UIColor blackColor];
@@ -139,18 +141,16 @@ static void applyDeepCustomDesign(UIView *view, id targetMenu) {
         ((UISlider *)view).thumbTintColor = [UIColor redColor];
     }
     
-    // --- صبغ الخلفيات العشوائية بالأحمر والأسود ---
+    // --- صبغ الخلفيات بالأحمر ---
     else {
         if (view.backgroundColor && CGColorGetNumberOfComponents(view.backgroundColor.CGColor) > 2) {
             const CGFloat *components = CGColorGetComponents(view.backgroundColor.CGColor);
-            // إذا كان اللون برتقالي/فاتح، حوله إلى أحمر داكن
             if (components[0] > 0.6 && components[1] > 0.2 && components[1] < 0.8) {
                 view.backgroundColor = [UIColor colorWithRed:0.8 green:0.0 blue:0.0 alpha:1.0];
             }
         }
     }
     
-    // تكرار العملية لكل العناصر
     for (UIView *sub in view.subviews) {
         applyDeepCustomDesign(sub, targetMenu);
     }
@@ -178,34 +178,30 @@ static void applyDeepCustomDesign(UIView *view, id targetMenu) {
     
     UIView *mainMenu = (UIView *)self;
     
-    // الثيم الأسود الاحترافي
     mainMenu.backgroundColor = [UIColor colorWithRed:0.05 green:0.05 blue:0.05 alpha:0.98];
     mainMenu.layer.borderColor = [UIColor redColor].CGColor;
     mainMenu.layer.borderWidth = 2.0;
     mainMenu.layer.cornerRadius = 15.0;
     
-    // إعدادات التوهج الأولي
     mainMenu.layer.shadowColor = [UIColor redColor].CGColor;
     mainMenu.layer.shadowRadius = 20.0;
     mainMenu.layer.shadowOpacity = 1.0;
     mainMenu.layer.shadowOffset = CGSizeZero;
     mainMenu.layer.masksToBounds = NO;
     
-    // إضافة "أنيميشن النبض" للتوهج (Glow Pulse)
     static BOOL animated = NO;
     if (!animated) {
         CABasicAnimation *pulse = [CABasicAnimation animationWithKeyPath:@"shadowRadius"];
         pulse.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-        pulse.fromValue = @(15.0); // التوهج الأقل
-        pulse.toValue = @(35.0);   // التوهج الأقصى
+        pulse.fromValue = @(15.0);
+        pulse.toValue = @(35.0);
         pulse.autoreverses = YES;
-        pulse.duration = 1.5;      // سرعة النبض
-        pulse.repeatCount = HUGE_VALF; // تكرار لا نهائي
+        pulse.duration = 1.5;
+        pulse.repeatCount = HUGE_VALF;
         [mainMenu.layer addAnimation:pulse forKey:@"pulseGlow"];
         animated = YES;
     }
     
-    // تشغيل محرك التصميم على كل شيء داخل المنيو
     applyDeepCustomDesign(mainMenu, self);
 }
 
