@@ -9,7 +9,7 @@
 - (void)openHasanyDev:(id)sender;
 @end
 
-// كلاس الزر الذكي (نظام علامة الصح ✅)
+// كلاس الزر الذكي (نظام علامة الصح ✔ و ☐)
 @interface CBToggle : UIButton
 @property (nonatomic, strong) UISwitch *targetSwitch;
 @property (nonatomic, strong) NSString *baseTitle;
@@ -21,48 +21,44 @@
 // ==========================================
 @implementation CBToggle
 - (void)btnTapped {
+    // إجبار السويتش الأصلي للعبة على التغيير (تفعيل الهاك الفعلي)
     BOOL newState = !self.targetSwitch.isOn;
     [self.targetSwitch setOn:newState animated:YES];
     [self.targetSwitch sendActionsForControlEvents:UIControlEventValueChanged];
+    [self.targetSwitch sendActionsForControlEvents:UIControlEventTouchUpInside];
     [self updateLook];
 }
 - (void)updateLook {
+    // استخدام رموز الويب بدل الايموجي العادي
     if (self.targetSwitch.isOn) {
-        [self setTitle:[NSString stringWithFormat:@"✅  %@", self.baseTitle] forState:UIControlStateNormal];
+        [self setTitle:[NSString stringWithFormat:@"✔  %@", self.baseTitle] forState:UIControlStateNormal];
         [self setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
         self.backgroundColor = [UIColor colorWithRed:0.6 green:0.0 blue:0.0 alpha:0.9];
         self.layer.borderWidth = 1.0;
         self.layer.borderColor = [UIColor redColor].CGColor;
     } else {
-        [self setTitle:[NSString stringWithFormat:@"⬜️  %@", self.baseTitle] forState:UIControlStateNormal];
+        [self setTitle:[NSString stringWithFormat:@"☐  %@", self.baseTitle] forState:UIControlStateNormal];
         [self setTitleColor:[UIColor lightGrayColor] forState:UIControlStateNormal];
-        self.backgroundColor = [UIColor colorWithWhite:0.2 alpha:0.7];
+        self.backgroundColor = [UIColor colorWithWhite:0.15 alpha:0.8];
         self.layer.borderWidth = 0.0;
     }
 }
 @end
 
 // ==========================================
-// 3. تغيير الأسماء الأصلية (تم حل مشكلة الأقواس جذرياً)
+// 3. تغيير الأسماء الأصلية (Hooks)
 // ==========================================
 %hook UILabel
 - (void)setText:(NSString *)text {
     if (text != nil && [text isKindOfClass:[NSString class]]) {
         NSString *newText = text;
         
-        if ([text containsString:@"i3rby Store"]) {
-            newText = @"hassanyIPA";
-        } else if ([text containsString:@"ايفون بالعربي"]) {
-            newText = @"";
-        } else if ([text containsString:@"السحب الابتدائي"]) {
-            newText = @"توقع الضربه القويه (ينصح به)";
-        } else if ([text containsString:@"البشرنة"]) {
-            newText = @"أسلوب اللعب";
-        } else if ([text containsString:@"الرسوم"]) {
-            newText = @"طريقة العرض";
-        } else if ([text containsString:@"الكره الخاطئة"]) {
-            newText = @"تنبيه الكره الخاطئة";
-        }
+        if ([text containsString:@"i3rby Store"]) { newText = @"hassanyIPA"; }
+        else if ([text containsString:@"ايفون بالعربي"]) { newText = @""; }
+        else if ([text containsString:@"السحب الابتدائي"]) { newText = @"توقع الضربه القويه"; }
+        else if ([text containsString:@"البشرنة"]) { newText = @"أسلوب اللعب"; }
+        else if ([text isEqualToString:@"الرسوم"]) { newText = @"طريقة العرض"; }
+        else if ([text containsString:@"الكره الخاطئة"]) { newText = @"تنبيه الكره الخاطئة"; }
         
         %orig(newText);
     } else {
@@ -72,7 +68,7 @@
 %end
 
 // ==========================================
-// 4. محرك البناء النظيف (بدون سحب العشوائيات)
+// 4. محرك البناء والخطف الدقيق (C-Functions)
 // ==========================================
 static UILabel* findLabel(UIView *root, NSString *searchText) {
     if (root.tag == 7777 || root.tag == 9999) return nil; 
@@ -87,121 +83,104 @@ static UILabel* findLabel(UIView *root, NSString *searchText) {
     return nil;
 }
 
-static UIView* findTrueRow(UILabel *label) {
-    UIView *current = label.superview;
-    while (current != nil) {
-        for (UIView *sub in current.subviews) {
-            if ([sub isKindOfClass:[UISwitch class]] || [sub isKindOfClass:[UISlider class]] || [sub isKindOfClass:[UISegmentedControl class]]) {
-                return current;
-            }
-        }
-        if ([current isKindOfClass:[UIScrollView class]]) break;
-        current = current.superview;
-    }
-    return label.superview; 
+// جلب السطر بشكل دقيق حتى ما نسحب قسم كامل بالغلط
+static UIView* getRowForLabel(UILabel *lbl) {
+    UIView *parent = lbl.superview;
+    if (parent && parent.bounds.size.height >= 20 && parent.bounds.size.height <= 90) return parent;
+    if (parent.superview && parent.superview.bounds.size.height >= 20 && parent.superview.bounds.size.height <= 90) return parent.superview;
+    return parent;
 }
 
-// بناء الأزرار الفخمة وربطها بالمخفية
-static void buildCleanRow(NSString *targetName, UIScrollView *scroll, CGFloat *yOffset, UIView *mainMenu) {
-    UILabel *origLabel = findLabel(mainMenu, targetName);
-    if (!origLabel) return;
-
-    UIView *origRow = findTrueRow(origLabel);
-    if (!origRow || origRow.tag == 9999) return;
+// بناء الزر الأنيق ودمجه
+static void hijackRow(UIView *row, NSString *targetName, UIScrollView *scroll, CGFloat *offset) {
+    row.tag = 9999;
+    [row removeFromSuperview];
+    row.translatesAutoresizingMaskIntoConstraints = YES;
     
-    origRow.tag = 9999; 
-    origRow.hidden = YES; // نخفي سطرهم المعفن
-
-    UIView *cleanRow = [[UIView alloc] initWithFrame:CGRectMake(10, *yOffset, 560, 50)];
-    cleanRow.backgroundColor = [UIColor clearColor];
-
-    UISwitch *origSw = nil;
-    UISlider *origSl = nil;
-    UISegmentedControl *origSeg = nil;
-
-    for (UIView *v in origRow.subviews) {
-        if ([v isKindOfClass:[UISwitch class]]) origSw = (UISwitch *)v;
-        else if ([v isKindOfClass:[UISlider class]]) origSl = (UISlider *)v;
-        else if ([v isKindOfClass:[UISegmentedControl class]]) origSeg = (UISegmentedControl *)v;
+    CGFloat h = row.bounds.size.height;
+    if (h < 30 || h > 90) h = 50; 
+    
+    row.frame = CGRectMake(10, *offset, 560, h);
+    row.backgroundColor = [UIColor clearColor];
+    
+    UISwitch *sw = nil;
+    UISlider *sl = nil;
+    UISegmentedControl *seg = nil;
+    UILabel *txt = nil;
+    
+    for (UIView *v in row.subviews) {
+        if ([v isKindOfClass:[UISwitch class]]) sw = (UISwitch *)v;
+        else if ([v isKindOfClass:[UISlider class]]) sl = (UISlider *)v;
+        else if ([v isKindOfClass:[UISegmentedControl class]]) seg = (UISegmentedControl *)v;
+        else if ([v isKindOfClass:[UILabel class]]) txt = (UILabel *)v;
     }
-
-    if (origSw != nil) {
+    
+    if (sw && txt) {
+        sw.alpha = 0.0; // إخفاء السويتش الأصلي بس يبقى شغال
+        txt.alpha = 0.0; // إخفاء النص الأصلي
+        
         CBToggle *btn = [CBToggle buttonWithType:UIButtonTypeCustom];
-        btn.frame = CGRectMake(0, 0, 560, 45);
+        btn.frame = CGRectMake(0, 0, 560, h);
         btn.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
         btn.titleEdgeInsets = UIEdgeInsetsMake(0, 15, 0, 0);
-        btn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+        btn.titleLabel.font = [UIFont boldSystemFontOfSize:17];
         btn.layer.cornerRadius = 10;
         btn.baseTitle = targetName;
-        btn.targetSwitch = origSw;
+        btn.targetSwitch = sw;
+        
         [btn addTarget:btn action:@selector(btnTapped) forControlEvents:UIControlEventTouchUpInside];
-        [btn updateLook];
-        [cleanRow addSubview:btn];
-        *yOffset += 55;
-    } 
-    else if (origSl != nil) {
-        UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 200, 50)];
-        lbl.text = targetName;
-        lbl.textColor = [UIColor whiteColor];
-        lbl.font = [UIFont boldSystemFontOfSize:16];
-        [cleanRow addSubview:lbl];
-
-        [origSl removeFromSuperview];
-        origSl.translatesAutoresizingMaskIntoConstraints = YES;
-        origSl.frame = CGRectMake(210, 10, 330, 30);
-        origSl.minimumTrackTintColor = [UIColor redColor];
-        origSl.thumbTintColor = [UIColor redColor];
-        [cleanRow addSubview:origSl];
-        *yOffset += 55;
-    } 
-    else if (origSeg != nil) {
-        UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 160, 50)];
-        lbl.text = targetName;
-        lbl.textColor = [UIColor whiteColor];
-        lbl.font = [UIFont boldSystemFontOfSize:16];
-        [cleanRow addSubview:lbl];
-
-        [origSeg removeFromSuperview];
-        origSeg.translatesAutoresizingMaskIntoConstraints = YES;
-        origSeg.frame = CGRectMake(170, 10, 370, 35);
-        if (@available(iOS 13.0, *)) {
-            origSeg.selectedSegmentTintColor = [UIColor redColor];
-        } else {
-            origSeg.tintColor = [UIColor redColor];
+        [btn updateLook]; // تحديث الشكل الابتدائي
+        
+        [row addSubview:btn];
+    } else {
+        // ترتيب السلايدرات (الشرائط) بدون إطار
+        if (txt) { txt.textColor = [UIColor whiteColor]; txt.font = [UIFont boldSystemFontOfSize:15]; }
+        if (sl) { sl.minimumTrackTintColor = [UIColor redColor]; sl.thumbTintColor = [UIColor redColor]; }
+        if (seg) {
+            if (@available(iOS 13.0, *)) seg.selectedSegmentTintColor = [UIColor redColor];
+            else seg.tintColor = [UIColor redColor];
+            [seg setTitleTextAttributes:@{NSForegroundColorAttributeName: [UIColor whiteColor]} forState:UIControlStateNormal];
         }
-        [origSeg setTitleTextAttributes:@{NSForegroundColorAttributeName: [UIColor whiteColor]} forState:UIControlStateNormal];
-        [cleanRow addSubview:origSeg];
-        *yOffset += 60;
     }
-
-    [scroll addSubview:cleanRow];
-    scroll.contentSize = CGSizeMake(580, *yOffset + 20);
+    
+    [scroll addSubview:row];
+    *offset += h + 10;
+    scroll.contentSize = CGSizeMake(580, *offset + 20); // تفعيل النزول
 }
 
-// المتغيرات اللي تحفظ مواقع الأزرار (مكان النزول)
-static CGFloat tabY0 = 10, tabY1 = 10, tabY2 = 10;
+// متغيرات الارتفاع للنزول (Scroll)
+static CGFloat tabOffset0 = 10, tabOffset1 = 10, tabOffset2 = 10;
 
-// الرادار الذكي (يعمل بالخلفية)
+// الرادار المستمر لجلب الأزرار
 static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
-    UIScrollView *tab0 = (UIScrollView *)[hassanyUI viewWithTag:8000];
-    UIScrollView *tab1 = (UIScrollView *)[hassanyUI viewWithTag:8001];
-    UIScrollView *tab2 = (UIScrollView *)[hassanyUI viewWithTag:8002];
+    UIScrollView *t0 = (UIScrollView *)[hassanyUI viewWithTag:8000];
+    UIScrollView *t1 = (UIScrollView *)[hassanyUI viewWithTag:8001];
+    UIScrollView *t2 = (UIScrollView *)[hassanyUI viewWithTag:8002];
     
     NSArray *targets0 = @[@"خطوط التوقع", @"توقع الخصم", @"حدود الطاولة", @"تنبيه الكره الخاطئة", @"حماية البث"];
     NSArray *targets1 = @[@"طريقة العرض", @"إزاحة Y", @"إزاحة X", @"مقياس X", @"مقياس Y", @"سمك الخط", @"شفافية الخط", @"نقطة النهاية", @"حلقة الجيب", @"توقع الضربه القويه"];
     NSArray *targets2 = @[@"زر الاختصار", @"إيقاف عند اللمس", @"نمط دوران", @"وضع التصويب", @"أسلوب اللعب", @"مستوى اللعب", @"وضع الكسر", @"قوة التصويب", @"سرعة تصويب"];
     
-    if (tab0) {
-        for (NSString *name in targets0) buildCleanRow(name, tab0, &tabY0, mainMenu);
+    if (t0) {
+        for (NSString *name in targets0) {
+            UILabel *lbl = findLabel(mainMenu, name);
+            if (lbl) hijackRow(getRowForLabel(lbl), name, t0, &tabOffset0);
+        }
     }
-    if (tab1) {
-        for (NSString *name in targets1) buildCleanRow(name, tab1, &tabY1, mainMenu);
+    if (t1) {
+        for (NSString *name in targets1) {
+            UILabel *lbl = findLabel(mainMenu, name);
+            if (lbl) hijackRow(getRowForLabel(lbl), name, t1, &tabOffset1);
+        }
     }
-    if (tab2) {
-        for (NSString *name in targets2) buildCleanRow(name, tab2, &tabY2, mainMenu);
+    if (t2) {
+        for (NSString *name in targets2) {
+            UILabel *lbl = findLabel(mainMenu, name);
+            if (lbl) hijackRow(getRowForLabel(lbl), name, t2, &tabOffset2);
+        }
     }
     
-    // إخفاء المنيو القديم بالكامل
+    // تجميد المنيو القديم وإخفاءه بالكامل
     for (UIView *sub in mainMenu.subviews) {
         if (sub.tag != 7777) { 
             sub.alpha = 0.01; 
@@ -277,6 +256,7 @@ static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
         [tabs setTitleTextAttributes:@{NSForegroundColorAttributeName: [UIColor whiteColor], NSFontAttributeName: [UIFont boldSystemFontOfSize:15]} forState:UIControlStateNormal];
         [hassanyUI addSubview:tabs];
         
+        // بناء السكرولات النظيفة
         for (int i = 0; i < 4; i++) {
             UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(20, 75, 580, 310)];
             scrollView.tag = 8000 + i; 
@@ -287,6 +267,7 @@ static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
             [hassanyUI addSubview:scrollView];
         }
         
+        // --- قسم الإعدادات (الفخم) ---
         UIScrollView *tab3 = (UIScrollView *)[hassanyUI viewWithTag:8003];
         UIImageView *profilePic = [[UIImageView alloc] initWithFrame:CGRectMake(240, 10, 100, 100)];
         profilePic.layer.cornerRadius = 50;
@@ -331,6 +312,7 @@ static void continuousRadar(UIView *mainMenu, UIView *hassanyUI) {
         
         tab3.contentSize = CGSizeMake(580, 300);
         
+        // تشغيل الرادار
         continuousRadar(mainMenu, hassanyUI);
     }
     
