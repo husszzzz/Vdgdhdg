@@ -4,26 +4,37 @@
 @end
 
 // ==========================================
-// 1. نظام تغيير النصوص (نمسح الهوية القديمة)
+// 1. نظام تغيير النصوص (تم حل مشكلة الكومبايلر)
 // ==========================================
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (!text || ![text isKindOfClass:[NSString class]]) { %orig; return; }
+    // التحقق من النص لتجنب الكراش
+    if (!text || ![text isKindOfClass:[NSString class]]) {
+        %orig(text);
+        return;
+    }
     
-    if ([text containsString:@"i3rby Store"]) { %orig(@"hassanyIPA"); }
-    else if ([text containsString:@"ايفون بالعربي"]) { %orig(@""); }
-    else { %orig; }
+    NSString *newText = text;
+    
+    // تبديل النصوص
+    if ([text containsString:@"i3rby Store"]) {
+        newText = @"hassanyIPA";
+    } else if ([text containsString:@"ايفون بالعربي"]) {
+        newText = @"";
+    }
+    
+    // استدعاء الدالة الأصلية مرة واحدة فقط لمنع خطأ Theos
+    %orig(newText);
 }
 %end
 
 // ==========================================
 // 2. أدوات الخطف (Hijacking Tools) وتعديل التصميم
 // ==========================================
-// هذه الدالة تبحث عن أي كلمة تريدها وتسحب السطر كامل (الزر مع النص)
 static UIView* hijackRowWithText(UIView *root, NSString *searchText) {
     if ([root isKindOfClass:[UILabel class]]) {
         if ([[(UILabel *)root text] containsString:searchText]) {
-            return root.superview; // السطر بالكامل
+            return root.superview; // سحب السطر بالكامل
         }
     }
     for (UIView *sub in root.subviews) {
@@ -33,9 +44,8 @@ static UIView* hijackRowWithText(UIView *root, NSString *searchText) {
     return nil;
 }
 
-// دالة لتنظيف وتلوين السطر المخطوف بالأحمر والأسود
 static void styleHijackedRow(UIView *row) {
-    row.backgroundColor = [UIColor clearColor]; // إزالة خلفيته الأصلية
+    row.backgroundColor = [UIColor clearColor];
     for (UIView *sub in row.subviews) {
         if ([sub isKindOfClass:[UILabel class]]) {
             ((UILabel *)sub).textColor = [UIColor whiteColor];
@@ -44,7 +54,6 @@ static void styleHijackedRow(UIView *row) {
             ((UISwitch *)sub).onTintColor = [UIColor redColor];
             ((UISwitch *)sub).thumbTintColor = [UIColor blackColor];
         }
-        // تطبيق التلوين على كل العناصر الداخلية
         styleHijackedRow(sub); 
     }
 }
@@ -59,11 +68,10 @@ static void styleHijackedRow(UIView *row) {
     
     UIView *mainMenu = (UIView *)self;
     
-    // --- 1. تحويل المنيو إلى شكل أفقي (بالعرض) ---
-    // نغير الأبعاد لنعطيه شكل الشاشة العريضة
+    // --- 1. تحويل المنيو إلى شكل أفقي ---
     CGRect newBounds = mainMenu.bounds;
-    newBounds.size.width = 600;  // عرض واسع
-    newBounds.size.height = 360; // ارتفاع مناسب
+    newBounds.size.width = 600;  
+    newBounds.size.height = 360; 
     mainMenu.bounds = newBounds;
     
     // --- 2. ستايل الخلفية النيون ---
@@ -93,7 +101,6 @@ static void styleHijackedRow(UIView *row) {
     }
     
     // --- 3. إخفاء اللستة القديمة ---
-    // نخفي القائمة القديمة حتى ما تشوه التصميم، بس نخليها شغالة بالخلفية
     for (UIView *sub in mainMenu.subviews) {
         if ([sub isKindOfClass:[UIScrollView class]]) {
             sub.alpha = 0.0; 
@@ -101,10 +108,8 @@ static void styleHijackedRow(UIView *row) {
     }
     
     // --- 4. بناء الأقسام (Tabs) وحاوية الخطف ---
-    // نستخدم Tag لضمان بناء الواجهة مرة واحدة فقط
     UIView *hassanyUI = [mainMenu viewWithTag:7777];
     if (!hassanyUI) {
-        // نترك 40 بكسل من الفوق حتى ما نغطي زر الإغلاق الأصلي (X) وشريط السحب
         hassanyUI = [[UIView alloc] initWithFrame:CGRectMake(0, 40, 600, 320)];
         hassanyUI.tag = 7777;
         hassanyUI.backgroundColor = [UIColor clearColor];
@@ -113,9 +118,8 @@ static void styleHijackedRow(UIView *row) {
         // الأقسام العلوية
         UISegmentedControl *tabs = [[UISegmentedControl alloc] initWithItems:@[@"التوقع", @"الرسوم", @"الإعدادات", @"فريق التطوير"]];
         tabs.frame = CGRectMake(20, 10, 560, 40);
-        tabs.selectedSegmentIndex = 0; // التوقع هو الافتراضي
+        tabs.selectedSegmentIndex = 0; 
         
-        // تلوين الأقسام
         if (@available(iOS 13.0, *)) {
             tabs.selectedSegmentTintColor = [UIColor colorWithRed:0.7 green:0.0 blue:0.0 alpha:1.0];
         } else {
@@ -124,7 +128,7 @@ static void styleHijackedRow(UIView *row) {
         [tabs setTitleTextAttributes:@{NSForegroundColorAttributeName: [UIColor whiteColor], NSFontAttributeName: [UIFont boldSystemFontOfSize:15]} forState:UIControlStateNormal];
         [hassanyUI addSubview:tabs];
         
-        // منطقة المحتوى (اللي راح نحط بيها الزر المخطوف)
+        // منطقة المحتوى
         UIView *contentArea = [[UIView alloc] initWithFrame:CGRectMake(20, 65, 560, 235)];
         contentArea.tag = 8888;
         contentArea.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.6];
@@ -133,24 +137,17 @@ static void styleHijackedRow(UIView *row) {
         contentArea.layer.borderWidth = 1.0;
         [hassanyUI addSubview:contentArea];
         
-        // --- 5. الخطف الفعلي (Hijacking) ---
-        // نستخدم توقيت بسيط (نصف ثانية) للتأكد أن اللعبة بنت الأزرار الأصلية بالخلفية قبل سحبها
+        // --- 5. الخطف الفعلي ---
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             
-            // نخطف زر التوقع
+            // خطف الزر
             UIView *hijackedRow = hijackRowWithText(mainMenu, @"خطوط التوقع");
             
             if (hijackedRow) {
-                [hijackedRow removeFromSuperview]; // سحب من اللستة القديمة
-                hijackedRow.alpha = 1.0; // إظهار
-                
-                // ترتيب قياساته داخل المنيو العريض
-                hijackedRow.frame = CGRectMake(10, 15, 540, 50);
-                
-                // صبغه بألوان الحسني
+                [hijackedRow removeFromSuperview];
+                hijackedRow.alpha = 1.0; 
+                hijackedRow.frame = CGRectMake(10, 15, 540, 50); // ترتيب قياسه
                 styleHijackedRow(hijackedRow);
-                
-                // زراعته في المحتوى الجديد
                 [contentArea addSubview:hijackedRow];
             }
         });
