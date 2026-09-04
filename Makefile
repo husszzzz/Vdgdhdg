@@ -1,12 +1,14 @@
+TARGET := iphone:clang:latest:14.0
 ARCHS = arm64
-TARGET = iphone:clang:latest:14.0
+INSTALL_TARGET_PROCESSES = SpringBoard
 
 include $(THEOS)/makefiles/common.mk
 
-# اسم التويك حسب المستودع مالتك
-TWEAK_NAME = Vdgdhdg
-Vdgdhdg_FILES = Tweak.x
-Vdgdhdg_FRAMEWORKS = UIKit
-Vdgdhdg_CFLAGS = -fobjc-arc
+TWEAK_NAME = HassanyAutoClicker
+
+HassanyAutoClicker_FILES = Tweak.x
+HassanyAutoClicker_CFLAGS = -fobjc-arc
+# إذا استخدمت PTFakeTouch ضيف سطر المكتبة هنا:
+# HassanyAutoClicker_LDFLAGS += -lPTFakeTouch
 
 include $(THEOS_MAKE_PATH)/tweak.mk
