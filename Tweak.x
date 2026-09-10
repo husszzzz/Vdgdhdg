@@ -1,109 +1,94 @@
 #import <UIKit/UIKit.h>
 
-// تعريف الواجهة الأساسية للأداة
-@interface HassanyAutoClicker : NSObject
-@property (nonatomic, strong) UIWindow *floatingWindow;
-@property (nonatomic, strong) UIButton *toggleButton;
-@property (nonatomic, strong) NSTimer *clickTimer;
-@property (nonatomic, assign) BOOL isClicking;
-+ (instancetype)sharedInstance;
-- (void)setupUI;
-@end
-
-@implementation HassanyAutoClicker
-
-+ (instancetype)sharedInstance {
-    static HassanyAutoClicker *instance = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        instance = [[HassanyAutoClicker alloc] init];
-    });
-    return instance;
-}
-
-// بناء الزر العائم
-- (void)setupUI {
-    // إنشاء نافذة عائمة بحجم صغير
-    self.floatingWindow = [[UIWindow alloc] initWithFrame:CGRectMake(20, 100, 60, 60)];
-    self.floatingWindow.windowLevel = UIWindowLevelAlert + 1; // لضمان بقائها فوق كل شيء
-    self.floatingWindow.hidden = NO;
-    self.floatingWindow.backgroundColor = [UIColor clearColor];
-
-    // إنشاء زر التشغيل/الإيقاف
-    self.toggleButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    self.toggleButton.frame = self.floatingWindow.bounds;
-    self.toggleButton.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.8];
-    self.toggleButton.layer.cornerRadius = 30; // جعله دائري
-    [self.toggleButton setTitle:@"▶️" forState:UIControlStateNormal];
-    self.toggleButton.titleLabel.font = [UIFont systemFontOfSize:24];
-    
-    // ربط الزر بدالة التكبيس
-    [self.toggleButton addTarget:self action:@selector(toggleClicking) forControlEvents:UIControlEventTouchUpInside];
-    [self.floatingWindow addSubview:self.toggleButton];
-    
-    // إضافة خاصية السحب والإفلات (Pan Gesture) حتى تقدر تحرك الزر بالشاشة
-    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
-    [self.floatingWindow addGestureRecognizer:pan];
-}
-
-// دالة تحريك الزر بالشاشة
-- (void)handlePan:(UIPanGestureRecognizer *)gesture {
-    CGPoint translation = [gesture translationInView:self.floatingWindow.superview];
-    CGPoint center = self.floatingWindow.center;
-    center.x += translation.x;
-    center.y += translation.y;
-    self.floatingWindow.center = center;
-    [gesture setTranslation:CGPointZero inView:self.floatingWindow.superview];
-}
-
-// تشغيل وإيقاف التكبيس
-- (void)toggleClicking {
-    self.isClicking = !self.isClicking;
-    
-    if (self.isClicking) {
-        [self.toggleButton setTitle:@"⏸️" forState:UIControlStateNormal];
-        
-        // تشغيل المؤقت - هنا محدد 0.05 (يعني 20 نقرة بالثانية)
-        self.clickTimer = [NSTimer scheduledTimerWithTimeInterval:0.05 
-                                                          target:self 
-                                                        selector:@selector(performClick) 
-                                                        userInfo:nil 
-                                                         repeats:YES];
-    } else {
-        [self.toggleButton setTitle:@"▶️" forState:UIControlStateNormal];
-        [self.clickTimer invalidate]; // إيقاف المؤقت
-        self.clickTimer = nil;
+// دالة ذكية لاستبدال النصوص في كل مكان داخل التطبيق
+static NSString* replaceUIStrings(NSString *originalText) {
+    if (!originalText || ![originalText isKindOfClass:[NSString class]]) {
+        return originalText;
     }
-}
-
-// دالة تنفيذ النقرة
-- (void)performClick {
-    // ⚠️ هنا يتم محاكاة اللمس
-    // في الألعاب والتطبيقات المتقدمة، نستخدم مكتبة مثل PTFakeTouch لعمل اللمسة الوهمية
-    // كمثال للإحداثيات: نأخذ مكان الزر العائم نفسه ونرسل نقرة تحته
     
-    // NSInteger pointId = [PTFakeTouch fakeTouchId:[PTFakeTouch getAvailablePointId]];
-    // CGPoint targetPoint = CGPointMake(self.floatingWindow.center.x, self.floatingWindow.center.y + 70); // النقرة تصير تحت الزر
-    // [PTFakeTouch sendUITouchCBeginAtPoint:targetPoint withPointId:pointId];
-    // [PTFakeTouch sendUITouchCEndAtPoint:targetPoint withPointId:pointId];
+    // تغيير اسم التطبيق أينما ظهر
+    if ([originalText containsString:@"الصافرة"]) {
+        return [originalText stringByReplacingOccurrencesOfString:@"الصافرة" withString:@"kicklive"];
+    }
     
-    NSLog(@"[Hassany Dylib] تم تنفيذ النقرة!");
+    // تغيير نصوص الإعدادات لتبدو احترافية وجديدة
+    if ([originalText containsString:@"الدعم والتواصل"]) {
+        return @"إصدار kicklive الاحترافي";
+    }
+    if ([originalText containsString:@"متابعة قناة التطبيق للتحديثات"]) {
+        return @"قناة التطبيقات (@hassanyIPA)";
+    }
+    if ([originalText containsString:@"مشاركة التطبيق مع الأصدقاء"]) {
+        return @"مطور النسخة (@OM_G9)";
+    }
+    if ([originalText containsString:@"لطلب إضافات أو الإبلاغ عن مشكلة"]) {
+        return @"اكتشف المزيد من تطبيقاتنا";
+    }
+    
+    return originalText;
 }
 
-@end
-
-// ---------------------------------------------
-// حقن الكود عند تشغيل التطبيق (Logos Hook)
-// ---------------------------------------------
-
-%ctor {
-    // بمجرد ما يفتح التطبيق بالكامل، راح نستدعي الواجهة ونرسم الزر
-    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidFinishLaunchingNotification 
-                                                      object:nil 
-                                                       queue:[NSOperationQueue mainQueue] 
-                                                  usingBlock:^(NSNotification * _Nonnull note) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [[HassanyAutoClicker sharedInstance] setupUI];
-        });
-    }];
+// 1. اعتراض النصوص في UILabel (الخاصة بالتصميم الأساسي)
+%hook UILabel
+- (void)setText:(NSString *)text {
+    %orig(replaceUIStrings(text));
 }
+%end
+
+// 2. اعتراض النصوص من ملفات الترجمة (مهم جداً لتطبيقات SwiftUI)
+%hook NSBundle
+- (NSString *)localizedStringForKey:(NSString *)key value:(NSString *)value table:(NSString *)tableName {
+    NSString *original = %orig;
+    return replaceUIStrings(original);
+}
+%end
+
+// 3. تغيير اسم التطبيق في النظام بشكل جذري
+%hook NSBundle
+- (id)objectForInfoDictionaryKey:(NSString *)key {
+    if ([key isEqualToString:@"CFBundleDisplayName"] || [key isEqualToString:@"CFBundleName"]) {
+        return @"kicklive";
+    }
+    return %orig;
+}
+%end
+
+// ==========================================
+// قسم اعتراض الأزرار والروابط (الخداع البرمجي)
+// ==========================================
+
+// 4. اعتراض أي رابط يفتحه التطبيق (مثل زر قناة التلجرام القديمة)
+%hook UIApplication
+- (void)openURL:(NSURL *)url options:(NSDictionary<UIApplicationOpenExternalURLOptionsKey, id> *)options completionHandler:(void (^)(BOOL success))completion {
+    NSString *urlString = [url absoluteString];
+    
+    // إذا كان التطبيق يحاول فتح رابط تيليجرام أو موقع خارجي للقناة القديمة
+    if ([urlString containsString:@"t.me/"] || [urlString containsString:@"telegram.org"]) {
+        // نوجه المستخدم إجبارياً إلى قناتك
+        NSURL *newChannelURL = [NSURL URLWithString:@"https://t.me/hassanyIPA"];
+        %orig(newChannelURL, options, completion);
+        return;
+    }
+    
+    %orig;
+}
+%end
+
+// 5. الخدعة الأقوى: اعتراض زر "مشاركة التطبيق"
+// في العادة زر المشاركة يفتح نافذة UIActivityViewController
+%hook UIViewController
+- (void)presentViewController:(UIViewController *)viewControllerToPresent animated:(BOOL)flag completion:(void (^)(void))completion {
+    
+    // إذا ضغط المستخدم على زر "مشاركة التطبيق" (والذي حولنا اسمه إلى المطور)
+    if ([viewControllerToPresent isKindOfClass:[UIActivityViewController class]]) {
+        // نلغي ظهور نافذة المشاركة، ونفتح حساب المطور بدلاً منها!
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/OM_G9"] options:@{} completionHandler:nil];
+        
+        // لا ننفذ %orig حتى لا تظهر نافذة المشاركة القديمة
+        return;
+    }
+    
+    // السماح بفتح أي نوافذ أخرى طبيعية
+    %orig;
+}
+%end
